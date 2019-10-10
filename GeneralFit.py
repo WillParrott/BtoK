@@ -4,7 +4,7 @@ import h5py
 import gvar as gv
 import numpy as np
 import corrfitter as cf
-import corrbayes
+#import corrbayes
 import copy
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -18,7 +18,7 @@ import datetime
 ################ F PARAMETERS  #############################
 F = collections.OrderedDict()
 F['conf'] = 'F'
-F['filename'] = 'HstoEtasfine5Neg.gpl'
+F['filename'] = 'KBscalarvectortensor_5cfgs_negFalse.gpl'
 F['masses'] = ['0.449','0.566','0.683','0.8']
 F['twists'] = ['0','0.4281','1.282','2.141','2.570','2.993']
 F['mtw'] = [[1,1,1,1,0,0],[1,1,1,1,1,0],[1,1,1,1,1,1],[1,1,1,1,1,1]]
@@ -27,14 +27,14 @@ F['m_s'] = '0.0376'
 F['Ts'] = [14,17,20]
 F['tp'] = 96
 F['L'] = 32
-F['tmaxesB-G5-G5'] = [48,48,48,48]
-F['tmaxesB-G5T-G5T'] = [48,48,48,48]
-F['tmaxesK-G5-G5'] = [46,45,45,42,42,37]            #48 is upper limit, ie goes up to 47
-F['tmaxesK-G5-G5X'] = [46,45,45,42,42,37] 
-F['tminB-G5-G5'] = 3
-F['tminB-G5T-G5T'] = 3
-F['tminK-G5-G5'] = 3
-F['tminK-G5-G5X'] = 3                            # 3 for 5 twists, 5 for first 4                        
+F['tmaxesBG'] = [48,48,48,48]
+F['tmaxesBNG'] = [48,48,48,48]
+F['tmaxesKG'] = [46,45,45,42,42,37]            #48 is upper limit, ie goes up to 47
+F['tmaxesKNG'] = [46,45,45,42,42,37] 
+F['tminBG'] = 3
+F['tminBNG'] = 3
+F['tminKG'] = 3
+F['tminKNG'] = 3                            # 3 for 5 twists, 5 for first 4 
 F['Stmin'] = 2
 F['Vtmin'] = 2
 F['Ttmin'] = 2
@@ -49,10 +49,10 @@ F['loosener'] = 0.3                          #Loosener on V_nn[0][0] often 0.5
 F['Mloosener'] = 0.05                        #Loosener on ground state 
 F['oMloosener'] = 0.2                       #Loosener on oscillating ground state
 F['a'] = 0.1715/(1.9006*0.1973)
-F['B-G5-G5-Tag'] = 'B_G5-G5_m{0}'
-F['B-G5T-G5T-Tag'] = 'B_G5T-G5T_m{0}'
-F['K-G5-G5-Tag'] = 'K_G5-G5_tw{0}'
-F['K-G5-G5-Tag'] = 'K_G5-G5X_tw{0}'
+F['BG-Tag'] = 'B_G5-G5_m{0}'
+F['BNG-Tag'] = 'B_G5T-G5T_m{0}'
+F['KG-Tag'] = 'K_G5-G5_tw{0}'
+F['KNG-Tag'] = 'K_G5-G5X_tw{0}'
 F['threePtTag'] = '{0}_T{1}_m{2}_m{3}_m{4}_tw{0}'
 
                 
@@ -62,11 +62,11 @@ F['threePtTag'] = '{0}_T{1}_m{2}_m{3}_m{4}_tw{0}'
 DoFit = True
 FitAll = False
 TestData = False
-Fit = UF                                               # Choose to fit F, SF or UF
+Fit = F                                               # Choose to fit F, SF or UF
 FitMasses = [0,1,2,3]                                 # Choose which masses to fit
 FitTwists = [0,1,2,3,4]                               # Choose which twists to fit
 FitTs = [0,1]#,2]
-FitCorrs = ['DG','NG','D']#,'G']#,'NG','D']#,'S','V']  # Choose which corrs to fit ['G','NG','D','S','V']
+FitCorrs = ['BG','BNG','KG','KNG','S','V','T']  # Choose which corrs to fit ['G','NG','D','S','V']
 FitAllTwists = True
 Chained = False
 Marginalised = False
@@ -96,16 +96,18 @@ def make_params(FitMasses,FitTwists,FitTs):
     qsqPos = collections.OrderedDict()
     masses = []
     twists = []
-    tmaxesG = []
-    tmaxesNG = []
-    tmaxesD = []
+    tmaxesBG = []
+    tmaxesBNG = []
+    tmaxesKG = []
+    tmaxesKNG = []
     Ts = []    
     m_s = Fit['m_s']
+    m_l = Fit['m_l']
     filename = Fit['filename']          
     for i in FitMasses:
         masses.append(Fit['masses'][i])
-        tmaxesG.append(Fit['tmaxesG'][i])
-        tmaxesNG.append(Fit['tmaxesNG'][i])
+        tmaxesBG.append(Fit['tmaxesBG'][i])
+        tmaxesBNG.append(Fit['tmaxesBNG'][i])
         for j in FitTwists:
             if FitAllTwists == True:
                 qsqPos['m{0}_tw{1}'.format(Fit['masses'][i],Fit['twists'][j])] = 1
@@ -113,20 +115,24 @@ def make_params(FitMasses,FitTwists,FitTs):
                 qsqPos['m{0}_tw{1}'.format(Fit['masses'][i],Fit['twists'][j])] = Fit['mtw'][i][j]
     for j in FitTwists:
         twists.append(Fit['twists'][j])
-        tmaxesD.append(Fit['tmaxesD'][j])
+        tmaxesKG.append(Fit['tmaxesKG'][j])
+        tmaxesKNG.append(Fit['tmaxesKNG'][j])
     for k in FitTs:
         Ts.append(Fit['Ts'][k])
     for twist in Fit['twists']:
-        TwoPts['Dtw{0}'.format(twist)] = Fit['daugterTag'][Fit['twists'].index(twist)]
+        TwoPts['KGtw{0}'.format(twist)] = Fit['KG-Tag'].format(twist)
+        TwoPts['KNGtw{0}'.format(twist)] = Fit['KNG-Tag'].format(twist)
     for mass in Fit['masses']:
-        TwoPts['Gm{0}'.format(mass)] = Fit['goldTag'].format(m_s,mass)
-        TwoPts['NGm{0}'.format(mass)] = Fit['nonGoldTag'].format(m_s,mass)
+        TwoPts['BGm{0}'.format(mass)] = Fit['BG-Tag'].format(mass)
+        TwoPts['BNGm{0}'.format(mass)] = Fit['BNG-Tag'].format(mass)
         for twist in Fit['twists']:
             for T in Ts:
-                ThreePts['Sm{0}_tw{1}_T{2}'.format(mass,twist,T)] = Fit['threePtTag'][Fit['twists'].index(twist)].format('current-scalar',T,m_s,mass,twist)
-                ThreePts['Vm{0}_tw{1}_T{2}'.format(mass,twist,T)] = Fit['threePtTag'][Fit['twists'].index(twist)].format('current-vector',T,m_s,mass,twist)
+                ThreePts['Sm{0}_tw{1}_T{2}'.format(mass,twist,T)] = Fit['threePtTag'].format('scalar',T,m_s,mass,twist)
+                ThreePts['Vm{0}_tw{1}_T{2}'.format(mass,twist,T)] = Fit['threePtTag'].format('vector',T,m_s,mass,twist)
+                ThreePts['Tm{0}_tw{1}_T{2}'.format(mass,twist,T)] = Fit['threePtTag'].format('tensor',T,m_s,mass,twist)
                 
-    return(TwoPts,ThreePts,masses,twists,Ts,tmaxesG,tmaxesNG,tmaxesD,qsqPos)
+                
+    return(TwoPts,ThreePts,masses,twists,Ts,tmaxesBG,tmaxesBNG,tmaxesKG,tmaxesKNG,qsqPos)
 
 
 
@@ -156,126 +162,155 @@ def eff_calc():
     V_eff = collections.OrderedDict()    
     #plt.figure(1)
     for mass in Fit['masses']:
-        M_effs['Gm{0}'.format(mass)] = []
-        M_effs['NGm{0}'.format(mass)] = []
-        M_eff['Gm{0}'.format(mass)] = 0
-        M_eff['NGm{0}'.format(mass)] = 0
-        A_effs['Gm{0}'.format(mass)] = []
-        A_effs['NGm{0}'.format(mass)] = []
-        A_eff['Gm{0}'.format(mass)] = 0
-        A_eff['NGm{0}'.format(mass)] = 0
+        M_effs['BGm{0}'.format(mass)] = []
+        M_effs['BNGm{0}'.format(mass)] = []
+        M_eff['BGm{0}'.format(mass)] = 0
+        M_eff['BNGm{0}'.format(mass)] = 0
+        A_effs['BGm{0}'.format(mass)] = []
+        A_effs['BNGm{0}'.format(mass)] = []
+        A_eff['BGm{0}'.format(mass)] = 0
+        A_eff['BNGm{0}'.format(mass)] = 0
         #plt.figure(mass)
         for t in range(2,tp-2):
-            G = (data[TwoPts['Gm{0}'.format(mass)]][t-2] + data[TwoPts['Gm{0}'.format(mass)]][t+2])/(2*data[TwoPts['Gm{0}'.format(mass)]][t])
-            if G >= 1:
-                M_effs['Gm{0}'.format(mass)].append(gv.arccosh(G)/2)
+            BG = (data[TwoPts['BGm{0}'.format(mass)]][t-2] + data[TwoPts['BGm{0}'.format(mass)]][t+2])/(2*data[TwoPts['BGm{0}'.format(mass)]][t])
+            if BG >= 1:
+                M_effs['BGm{0}'.format(mass)].append(gv.arccosh(BG)/2)
             else:
-                M_effs['Gm{0}'.format(mass)].append(0)
+                M_effs['BGm{0}'.format(mass)].append(0)
                 
-            NG = (data[TwoPts['NGm{0}'.format(mass)]][t-2] + data[TwoPts['NGm{0}'.format(mass)]][t+2])/(2*data[TwoPts['NGm{0}'.format(mass)]][t])
-            if NG >= 1:
-                M_effs['NGm{0}'.format(mass)].append(gv.arccosh(NG)/2)
+            BNG = (data[TwoPts['BNGm{0}'.format(mass)]][t-2] + data[TwoPts['BNGm{0}'.format(mass)]][t+2])/(2*data[TwoPts['BNGm{0}'.format(mass)]][t])
+            if BNG >= 1:
+                M_effs['BNGm{0}'.format(mass)].append(gv.arccosh(BNG)/2)
             else:
-                M_effs['NGm{0}'.format(mass)].append(0)            
+                M_effs['BNGm{0}'.format(mass)].append(0)            
            
         #plt.errorbar(M_effs['Gm{0}'.format(mass)][:].mean, yerr=M_effV[:].sdev, fmt='ko')
         #plt.errorbar(M_effs['Gm{0}'.format(mass)][:].mean, yerr=M_effS[:].sdev, fmt='ro')
     for twist in Fit['twists']:
-        M_effs['Dtw{0}'.format(twist)] = []
-        M_eff['Dtw{0}'.format(twist)] = 0
-        A_effs['Dtw{0}'.format(twist)] = []
-        A_eff['Dtw{0}'.format(twist)] = 0
+        M_effs['KGtw{0}'.format(twist)] = []
+        M_eff['KGtw{0}'.format(twist)] = 0
+        A_effs['KGtw{0}'.format(twist)] = []
+        A_eff['KGtw{0}'.format(twist)] = 0
+        M_effs['KNGtw{0}'.format(twist)] = []
+        M_eff['KNGtw{0}'.format(twist)] = 0
+        A_effs['KNGtw{0}'.format(twist)] = []
+        A_eff['KNGtw{0}'.format(twist)] = 0
         for t in range(2,tp-2):
-            D = (data[TwoPts['Dtw{0}'.format(twist)]][t-2] + data[TwoPts['Dtw{0}'.format(twist)]][t+2])/(2*data[TwoPts['Dtw{0}'.format(twist)]][t])
-            if D >= 1:
-                M_effs['Dtw{0}'.format(twist)].append(gv.arccosh(D)/2)
+            KG = (data[TwoPts['KGtw{0}'.format(twist)]][t-2] + data[TwoPts['KGtw{0}'.format(twist)]][t+2])/(2*data[TwoPts['KGtw{0}'.format(twist)]][t])
+            if KG >= 1:
+                M_effs['KGtw{0}'.format(twist)].append(gv.arccosh(KG)/2)
             else:
-                M_effs['Dtw{0}'.format(twist)].append(0)
+                M_effs['KGtw{0}'.format(twist)].append(0)
+            KNG = (data[TwoPts['KNGtw{0}'.format(twist)]][t-2] + data[TwoPts['KNGtw{0}'.format(twist)]][t+2])/(2*data[TwoPts['KNGtw{0}'.format(twist)]][t])
+            if KNG >= 1:
+                M_effs['KNGtw{0}'.format(twist)].append(gv.arccosh(KNG)/2)
+            else:
+                M_effs['KNGtw{0}'.format(twist)].append(0)
     #print(M_effs)
         #plt.errorbar(M_effs['Dtw{0}'.format(twist)][:].mean, yerr=M_effS[:].sdev, fmt='ro')
     #plt.title('M_eff')
     #print('M',M_effs)
     for mass in Fit['masses']:
-        denomG = 0
-        denomNG = 0
+        denomBG = 0
+        denomBNG = 0
         for i in list(range(int(tp*(middle-gap)),int(tp*(middle+gap))))+list(range(int(tp*(1-middle-gap)),int(tp*(1-middle+gap)))):
-            M_eff['Gm{0}'.format(mass)] += M_effs['Gm{0}'.format(mass)][i]
-            if M_effs['Gm{0}'.format(mass)][i] != 0:
-                denomG += 1
-            M_eff['NGm{0}'.format(mass)] += M_effs['NGm{0}'.format(mass)][i]
-            if M_effs['NGm{0}'.format(mass)][i] != 0:
-                denomNG += 1
+            M_eff['BGm{0}'.format(mass)] += M_effs['BGm{0}'.format(mass)][i]
+            if M_effs['BGm{0}'.format(mass)][i] != 0:
+                denomBG += 1
+            M_eff['BNGm{0}'.format(mass)] += M_effs['BNGm{0}'.format(mass)][i]
+            if M_effs['BNGm{0}'.format(mass)][i] != 0:
+                denomBNG += 1
        # if denomG !=0:        
-        M_eff['Gm{0}'.format(mass)] = M_eff['Gm{0}'.format(mass)]/denomG
+        M_eff['BGm{0}'.format(mass)] = M_eff['BGm{0}'.format(mass)]/denomBG
        # else:
        #     M_eff['Gm{0}'.format(mass)] = PDGGMass*Fit['a']
-        M_eff['NGm{0}'.format(mass)] = M_eff['NGm{0}'.format(mass)]/denomNG
+        M_eff['BNGm{0}'.format(mass)] = M_eff['BNGm{0}'.format(mass)]/denomBNG
     for twist in Fit['twists']:
-        denomD = 0
+        denomKG = 0
+        denomKNG = 0
         for i in list(range(int(tp*(middle-gap)),int(tp*(middle+gap))))+list(range(int(tp*(1-middle-gap)),int(tp*(1-middle+gap)))):
-            M_eff['Dtw{0}'.format(twist)] += M_effs['Dtw{0}'.format(twist)][i]
-            if M_effs['Dtw{0}'.format(twist)][i] != 0:
-                denomD +=1
-        M_eff['Dtw{0}'.format(twist)] = M_eff['Dtw{0}'.format(twist)]/denomD
+            M_eff['KGtw{0}'.format(twist)] += M_effs['KGtw{0}'.format(twist)][i]
+            if M_effs['KGtw{0}'.format(twist)][i] != 0:
+                denomKG +=1
+            M_eff['KNGtw{0}'.format(twist)] += M_effs['KNGtw{0}'.format(twist)][i]
+            if M_effs['KNGtw{0}'.format(twist)][i] != 0:
+                denomKNG +=1
+        M_eff['KGtw{0}'.format(twist)] = M_eff['KGtw{0}'.format(twist)]/denomKG
+        M_eff['KNGtw{0}'.format(twist)] = M_eff['KNGtw{0}'.format(twist)]/denomKNG
         p = np.sqrt(3)*np.pi*float(twist)/Fit['L']
-        M_effTheory = gv.sqrt(M_eff['Dtw0']**2 + p**2)
-        if abs(((M_eff['Dtw{0}'.format(twist)]-M_effTheory)/M_effTheory).mean) > 0.1:
-            print('Substituted M_effTheory for twist',twist, 'Difference:',(M_eff['Dtw{0}'.format(twist)]-M_effTheory)/M_effTheory,'old:',M_eff['Dtw{0}'.format(twist)],'New:',M_effTheory)
-            M_eff['Dtw{0}'.format(twist)] = copy.deepcopy(M_effTheory)
-            
+        M_effTheoryKG = gv.sqrt(M_eff['KGtw0']**2 + p**2)
+        M_effTheoryKNG = gv.sqrt(M_eff['KNGtw0']**2 + p**2)        
+        if abs(((M_eff['KGtw{0}'.format(twist)]-M_effTheoryKG)/M_effTheoryKG).mean) > 0.1:
+            print('Substituted M_effTheory for KG twist',twist, 'Difference:',(M_eff['KGtw{0}'.format(twist)]-M_effTheoryKG)/M_effTheoryKG,'old:',M_eff['KGtw{0}'.format(twist)],'New:',M_effTheoryKG)
+            M_eff['KGtw{0}'.format(twist)] = copy.deepcopy(M_effTheoryKG)
+        if abs(((M_eff['KNGtw{0}'.format(twist)]-M_effTheoryKNG)/M_effTheoryKNG).mean) > 0.1:
+            print('Substituted M_effTheory for KNG twist',twist, 'Difference:',(M_eff['KNGtw{0}'.format(twist)]-M_effTheoryKNG)/M_effTheoryKNG,'old:',M_eff['KNGtw{0}'.format(twist)],'New:',M_effTheoryKNG)
+            M_eff['KNGtw{0}'.format(twist)] = copy.deepcopy(M_effTheoryKNG)    
     #print('M_eff',M_eff)        
     #plt.figure(2)
     for mass in Fit['masses']:
         for t in range(1,tp-2):
-            numerator = data[TwoPts['Gm{0}'.format(mass)]][t]
+            numerator = data[TwoPts['BGm{0}'.format(mass)]][t]
             if numerator >= 0:
-                A_effs['Gm{0}'.format(mass)].append(gv.sqrt(numerator/(gv.exp(-M_eff['Gm{0}'.format(mass)]*t)+gv.exp(-M_eff['Gm{0}'.format(mass)]*(tp-t)))))
+                A_effs['BGm{0}'.format(mass)].append(gv.sqrt(numerator/(gv.exp(-M_eff['BGm{0}'.format(mass)]*t)+gv.exp(-M_eff['BGm{0}'.format(mass)]*(tp-t)))))
             else:
-                A_effs['Gm{0}'.format(mass)].append(0)
-            numerator = data[TwoPts['NGm{0}'.format(mass)]][t]
+                A_effs['BGm{0}'.format(mass)].append(0)
+            numerator = data[TwoPts['BNGm{0}'.format(mass)]][t]
             if numerator >= 0:
-                A_effs['NGm{0}'.format(mass)].append(gv.sqrt(numerator/(gv.exp(-M_eff['NGm{0}'.format(mass)]*t)+gv.exp(-M_eff['NGm{0}'.format(mass)]*(tp-t)))))
+                A_effs['BNGm{0}'.format(mass)].append(gv.sqrt(numerator/(gv.exp(-M_eff['BNGm{0}'.format(mass)]*t)+gv.exp(-M_eff['BNGm{0}'.format(mass)]*(tp-t)))))
             else:
-                A_effs['NGm{0}'.format(mass)].append(0)
+                A_effs['BNGm{0}'.format(mass)].append(0)
 
                 
     for twist in Fit['twists']:
         for t in range(1,tp-2):
-            numerator = data[TwoPts['Dtw{0}'.format(twist)]][t]
+            numerator = data[TwoPts['KGtw{0}'.format(twist)]][t]
             if numerator >= 0:
-                A_effs['Dtw{0}'.format(twist)].append(gv.sqrt(numerator/(np.exp(-M_eff['Dtw{0}'.format(twist)]*t)+np.exp(-M_eff['Dtw{0}'.format(twist)]*(tp-t)))))
+                A_effs['KGtw{0}'.format(twist)].append(gv.sqrt(numerator/(np.exp(-M_eff['KGtw{0}'.format(twist)]*t)+np.exp(-M_eff['KGtw{0}'.format(twist)]*(tp-t)))))
             else:
-                A_effs['Dtw{0}'.format(twist)].append(0)
-               
+                A_effs['KGtw{0}'.format(twist)].append(0)
+            numerator = data[TwoPts['KNGtw{0}'.format(twist)]][t]
+            if numerator >= 0:
+                A_effs['KNGtw{0}'.format(twist)].append(gv.sqrt(numerator/(np.exp(-M_eff['KNGtw{0}'.format(twist)]*t)+np.exp(-M_eff['KNGtw{0}'.format(twist)]*(tp-t)))))
+            else:
+                A_effs['KNGtw{0}'.format(twist)].append(0)
     #print('A',A_effs)          
     for mass in Fit['masses']:
-        denomG = 0
-        denomNG = 0
+        denomBG = 0
+        denomBNG = 0
         for i in list(range(int(tp*(middle-gap)),int(tp*(middle+gap))))+list(range(int(tp*(1-middle-gap)),int(tp*(1-middle+gap)))):
-            A_eff['Gm{0}'.format(mass)] += A_effs['Gm{0}'.format(mass)][i]
-            if A_effs['Gm{0}'.format(mass)][i] != 0:
-                denomG += 1
-            A_eff['NGm{0}'.format(mass)] += A_effs['NGm{0}'.format(mass)][i]
-            if A_effs['NGm{0}'.format(mass)][i] != 0:
-                denomNG += 1
-        A_eff['Gm{0}'.format(mass)] = A_eff['Gm{0}'.format(mass)]/denomG
-        A_eff['NGm{0}'.format(mass)] = A_eff['NGm{0}'.format(mass)]/denomNG
-        if A_eff['Gm{0}'.format(mass)].sdev/A_eff['Gm{0}'.format(mass)].mean >0.5:
-            print('G Aeff mass {1} = {0} error too large so substituted'.format(A_eff['Gm{0}'.format(mass)],mass))
-            A_eff['Gm{0}'.format(mass)]= gv.gvar(Fit['an'])
-        if A_eff['NGm{0}'.format(mass)].sdev/A_eff['NGm{0}'.format(mass)].mean >0.2:
-            print('NG Aeff mass {1} = {0} error too large so substituted'.format(A_eff['NGm{0}'.format(mass)],mass))
-            A_eff['NGm{0}'.format(mass)]= gv.gvar(Fit['an'])
+            A_eff['BGm{0}'.format(mass)] += A_effs['BGm{0}'.format(mass)][i]
+            if A_effs['BGm{0}'.format(mass)][i] != 0:
+                denomBG += 1
+            A_eff['BNGm{0}'.format(mass)] += A_effs['BNGm{0}'.format(mass)][i]
+            if A_effs['BNGm{0}'.format(mass)][i] != 0:
+                denomBNG += 1
+        A_eff['BGm{0}'.format(mass)] = A_eff['BGm{0}'.format(mass)]/denomBG
+        A_eff['BNGm{0}'.format(mass)] = A_eff['BNGm{0}'.format(mass)]/denomBNG
+        if A_eff['BGm{0}'.format(mass)].sdev/A_eff['BGm{0}'.format(mass)].mean >0.5:
+            print('BG Aeff mass {1} = {0} error too large so substituted'.format(A_eff['BGm{0}'.format(mass)],mass))
+            A_eff['BGm{0}'.format(mass)]= gv.gvar(Fit['an'])
+        if A_eff['BNGm{0}'.format(mass)].sdev/A_eff['BNGm{0}'.format(mass)].mean >0.2:
+            print('BNG Aeff mass {1} = {0} error too large so substituted'.format(A_eff['BNGm{0}'.format(mass)],mass))
+            A_eff['BNGm{0}'.format(mass)]= gv.gvar(Fit['an'])
     for twist in Fit['twists']:
-        denomD = 0
+        denomKG = 0
+        denomKNG = 0
         for i in list(range(int(tp*(middle-gap)),int(tp*(middle+gap))))+list(range(int(tp*(1-middle-gap)),int(tp*(1-middle+gap)))):       
-            A_eff['Dtw{0}'.format(twist)] += A_effs['Dtw{0}'.format(twist)][i]
-            if A_effs['Dtw{0}'.format(twist)][i] != 0:
-                denomD += 1
-        A_eff['Dtw{0}'.format(twist)] = A_eff['Dtw{0}'.format(twist)]/denomD
-        if A_eff['Dtw{0}'.format(twist)].sdev/A_eff['Dtw{0}'.format(twist)].mean > 0.2:
-            print('D Aeff twist {1} = {0} error too large so substituted'.format(A_eff['Dtw{0}'.format(twist)],twist))
-            A_eff['Dtw{0}'.format(twist)] = gv.gvar(Fit['an'])
+            A_eff['KGtw{0}'.format(twist)] += A_effs['KGtw{0}'.format(twist)][i]
+            if A_effs['KGtw{0}'.format(twist)][i] != 0:
+                denomKG += 1
+            A_eff['KNGtw{0}'.format(twist)] += A_effs['KNGtw{0}'.format(twist)][i]
+            if A_effs['KNGtw{0}'.format(twist)][i] != 0:
+                denomKNG += 1
+        A_eff['KGtw{0}'.format(twist)] = A_eff['KGtw{0}'.format(twist)]/denomKG
+        A_eff['KNGtw{0}'.format(twist)] = A_eff['KNGtw{0}'.format(twist)]/denomKNG
+        if A_eff['KGtw{0}'.format(twist)].sdev/A_eff['KGtw{0}'.format(twist)].mean > 0.2:
+            print('KG Aeff twist {1} = {0} error too large so substituted'.format(A_eff['KGtw{0}'.format(twist)],twist))
+            A_eff['KGtw{0}'.format(twist)] = gv.gvar(Fit['an'])
+        if A_eff['KNGtw{0}'.format(twist)].sdev/A_eff['KNGtw{0}'.format(twist)].mean > 0.2:
+            print('KNG Aeff twist {1} = {0} error too large so substituted'.format(A_eff['KNGtw{0}'.format(twist)],twist))
+            A_eff['KNGtw{0}'.format(twist)] = gv.gvar(Fit['an'])
     #print('A_eff',A_eff)
             #plt.errorbar(t, A_effV[t-1].mean, yerr=A_effV[t-1].sdev, fmt='ko')
         #plt.errorbar(t, A_effS[t-1].mean, yerr=A_effS[t-1].sdev, fmt='ro')
@@ -284,17 +319,20 @@ def eff_calc():
     #plt.show()
     #print(M_eff)    
     #plt.show()
-    if ('S' or 'V') in FitCorrs:
+    if ('S' or 'V' or 'T') in FitCorrs:
         print(FitCorrs)
         for mass in Fit['masses']:
             for twist in Fit['twists']:        
                 V_effs['Sm{0}_tw{1}'.format(mass,twist)] = []
                 V_effs['Vm{0}_tw{1}'.format(mass,twist)] = []
+                V_effs['Tm{0}_tw{1}'.format(mass,twist)] = []
                 V_eff['Sm{0}_tw{1}'.format(mass,twist)] = 0
                 V_eff['Vm{0}_tw{1}'.format(mass,twist)] = 0
+                V_eff['Tm{0}_tw{1}'.format(mass,twist)] = 0
                 for t in range(T):
-                    V_effs['Sm{0}_tw{1}'.format(mass,twist)].append(A_eff['Gm{0}'.format(mass)]*A_eff['Dtw{0}'.format(twist)]*data[ThreePts['Sm{0}_tw{1}_T{2}'.format(mass,twist,T)]][t]/(data[TwoPts['Dtw{0}'.format(twist)]][t]*data[TwoPts['Gm{0}'.format(mass)]][T-t]))
-                    V_effs['Vm{0}_tw{1}'.format(mass,twist)].append(A_eff['NGm{0}'.format(mass)]*A_eff['Dtw{0}'.format(twist)]*data[ThreePts['Vm{0}_tw{1}_T{2}'.format(mass,twist,T)]][t]/(data[TwoPts['Dtw{0}'.format(twist)]][t]*data[TwoPts['NGm{0}'.format(mass)]][T-t]))
+                    V_effs['Sm{0}_tw{1}'.format(mass,twist)].append(A_eff['BGm{0}'.format(mass)]*A_eff['KGtw{0}'.format(twist)]*data[ThreePts['Sm{0}_tw{1}_T{2}'.format(mass,twist,T)]][t]/(data[TwoPts['KGtw{0}'.format(twist)]][t]*data[TwoPts['BGm{0}'.format(mass)]][T-t]))
+                    V_effs['Vm{0}_tw{1}'.format(mass,twist)].append(A_eff['BNGm{0}'.format(mass)]*A_eff['KGtw{0}'.format(twist)]*data[ThreePts['Vm{0}_tw{1}_T{2}'.format(mass,twist,T)]][t]/(data[TwoPts['KGtw{0}'.format(twist)]][t]*data[TwoPts['BNGm{0}'.format(mass)]][T-t]))
+                    V_effs['Tm{0}_tw{1}'.format(mass,twist)].append(A_eff['BNGm{0}'.format(mass)]*A_eff['KNGtw{0}'.format(twist)]*data[ThreePts['Tm{0}_tw{1}_T{2}'.format(mass,twist,T)]][t]/(data[TwoPts['KNGtw{0}'.format(twist)]][t]*data[TwoPts['BNGm{0}'.format(mass)]][T-t]))
                 
 
         for mass in Fit['masses']:
@@ -302,10 +340,13 @@ def eff_calc():
                 for t in range(int(T/2-T/5),int(T/2+T/5)):
                     V_eff['Sm{0}_tw{1}'.format(mass,twist)]  += (1/4)*V_effs['Sm{0}_tw{1}'.format(mass,twist)][t]
                     V_eff['Vm{0}_tw{1}'.format(mass,twist)]  += (1/4)*V_effs['Vm{0}_tw{1}'.format(mass,twist)][t]
+                    V_eff['Tm{0}_tw{1}'.format(mass,twist)]  += (1/4)*V_effs['Tm{0}_tw{1}'.format(mass,twist)][t]
                 if V_eff['Sm{0}_tw{1}'.format(mass,twist)] < 0.1 or V_eff['Sm{0}_tw{1}'.format(mass,twist)] > 1.5:
                     V_eff['Sm{0}_tw{1}'.format(mass,twist)] = gv.gvar('0.5(5)')
                 if V_eff['Vm{0}_tw{1}'.format(mass,twist)] < 0.1 or V_eff['Vm{0}_tw{1}'.format(mass,twist)] > 1.5:
                     V_eff['Vm{0}_tw{1}'.format(mass,twist)] = gv.gvar('0.5(5)')
+                if V_eff['Tm{0}_tw{1}'.format(mass,twist)] < 0.1 or V_eff['Tm{0}_tw{1}'.format(mass,twist)] > 1.5:
+                    V_eff['Tm{0}_tw{1}'.format(mass,twist)] = gv.gvar('0.5(5)')
     #print(V_effs)
     #print(V_eff)
     return(M_eff,A_eff,V_eff)
@@ -321,6 +362,8 @@ def make_prior(All,N,M_eff,A_eff,V_eff,Autoprior):
     SV0 = '{0}({1})'.format(gv.gvar(Fit['SV0']).mean,PriorLoosener*gv.gvar(Fit['SV0']).sdev)
     VVn = '{0}({1})'.format(gv.gvar(Fit['VVn']).mean,PriorLoosener*gv.gvar(Fit['VVn']).sdev)
     VV0 = '{0}({1})'.format(gv.gvar(Fit['VV0']).mean,PriorLoosener*gv.gvar(Fit['VV0']).sdev)
+    TVn = '{0}({1})'.format(gv.gvar(Fit['TVn']).mean,PriorLoosener*gv.gvar(Fit['TVn']).sdev)
+    TV0 = '{0}({1})'.format(gv.gvar(Fit['TV0']).mean,PriorLoosener*gv.gvar(Fit['TV0']).sdev)
     a = Fit['a']
     loosener = Fit['loosener']
     Mloosener = Fit['Mloosener']                 
@@ -334,50 +377,65 @@ def make_prior(All,N,M_eff,A_eff,V_eff,Autoprior):
                 if key in ThreeKeys:
                     prior[key] = Autoprior[key]
     else:        
-        if 'D' in FitCorrs:
+        if 'KG' in FitCorrs:
             for twist in twists:        
                 # Daughter
-                prior['log({0}:a)'.format(TwoPts['Dtw{0}'.format(twist)])] = gv.log(gv.gvar(N * [an]))
-                prior['log(dE:{0})'.format(TwoPts['Dtw{0}'.format(twist)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
-                prior['log({0}:a)'.format(TwoPts['Dtw{0}'.format(twist)])][0] = gv.log(gv.gvar(A_eff['Dtw{0}'.format(twist)].mean,PriorLoosener*loosener*A_eff['Dtw{0}'.format(twist)].mean))
-                prior['log(dE:{0})'.format(TwoPts['Dtw{0}'.format(twist)])][0] = gv.log(gv.gvar(M_eff['Dtw{0}'.format(twist)].mean,PriorLoosener*Mloosener*M_eff['Dtw{0}'.format(twist)].mean))
+                prior['log({0}:a)'.format(TwoPts['KGtw{0}'.format(twist)])] = gv.log(gv.gvar(N * [an]))
+                prior['log(dE:{0})'.format(TwoPts['KGtw{0}'.format(twist)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
+                prior['log({0}:a)'.format(TwoPts['KGtw{0}'.format(twist)])][0] = gv.log(gv.gvar(A_eff['KGtw{0}'.format(twist)].mean,PriorLoosener*loosener*A_eff['KGtw{0}'.format(twist)].mean))
+                prior['log(dE:{0})'.format(TwoPts['KGtw{0}'.format(twist)])][0] = gv.log(gv.gvar(M_eff['KGtw{0}'.format(twist)].mean,PriorLoosener*Mloosener*M_eff['KGtw{0}'.format(twist)].mean))
             #prior['log(etas:dE)'][1] = gv.log(gv.gvar(EtaE1[str(twist)]))
         
                 # Daughter -- oscillating part
-                if twist!='0':                      
-                    prior['log(o{0}:a)'.format(TwoPts['Dtw{0}'.format(twist)])] = gv.log(gv.gvar(N * [an]))
-                    prior['log(dE:o{0})'.format(TwoPts['Dtw{0}'.format(twist)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
+                #if twist!='0':                      
+                prior['log(o{0}:a)'.format(TwoPts['KGtw{0}'.format(twist)])] = gv.log(gv.gvar(N * [an]))
+                prior['log(dE:o{0})'.format(TwoPts['KGtw{0}'.format(twist)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
                 #prior['log(o{0}:a)'.format(TwoPts['Dtw{0}'.format(twist)])][0] = gv.log(gv.gvar(A_eff['Dtw{0}'.format(twist)].mean,loosener*A_eff['Dtw{0}'.format(twist)].mean))
-                    prior['log(dE:o{0})'.format(TwoPts['Dtw{0}'.format(twist)])][0] = gv.log(gv.gvar(M_eff['Dtw{0}'.format(twist)].mean+Lambda*a,PriorLoosener*oMloosener*(M_eff['Dtw{0}'.format(twist)].mean+Lambda*a)))
+                prior['log(dE:o{0})'.format(TwoPts['KGtw{0}'.format(twist)])][0] = gv.log(gv.gvar(M_eff['KGtw{0}'.format(twist)].mean+Lambda*a,PriorLoosener*oMloosener*(M_eff['KGtw{0}'.format(twist)].mean+Lambda*a)))
+        if 'KNG' in FitCorrs:
+            for twist in twists:        
+                # Daughter
+                prior['log({0}:a)'.format(TwoPts['KNGtw{0}'.format(twist)])] = gv.log(gv.gvar(N * [an]))
+                prior['log(dE:{0})'.format(TwoPts['KNGtw{0}'.format(twist)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
+                prior['log({0}:a)'.format(TwoPts['KNGtw{0}'.format(twist)])][0] = gv.log(gv.gvar(A_eff['KNGtw{0}'.format(twist)].mean,PriorLoosener*loosener*A_eff['KNGtw{0}'.format(twist)].mean))
+                prior['log(dE:{0})'.format(TwoPts['KNGtw{0}'.format(twist)])][0] = gv.log(gv.gvar(M_eff['KNGtw{0}'.format(twist)].mean,PriorLoosener*Mloosener*M_eff['KNGtw{0}'.format(twist)].mean))
+            #prior['log(etas:dE)'][1] = gv.log(gv.gvar(EtaE1[str(twist)]))
+        
+                # Daughter -- oscillating part
+                #if twist!='0':                      
+                prior['log(o{0}:a)'.format(TwoPts['KNGtw{0}'.format(twist)])] = gv.log(gv.gvar(N * [an]))
+                prior['log(dE:o{0})'.format(TwoPts['KNGtw{0}'.format(twist)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
+                #prior['log(o{0}:a)'.format(TwoPts['Dtw{0}'.format(twist)])][0] = gv.log(gv.gvar(A_eff['Dtw{0}'.format(twist)].mean,loosener*A_eff['Dtw{0}'.format(twist)].mean))
+                prior['log(dE:o{0})'.format(TwoPts['KNGtw{0}'.format(twist)])][0] = gv.log(gv.gvar(M_eff['KNGtw{0}'.format(twist)].mean+Lambda*a,PriorLoosener*oMloosener*(M_eff['KNGtw{0}'.format(twist)].mean+Lambda*a)))
            
-        if 'G' in FitCorrs:
+        if 'BG' in FitCorrs:
             for mass in masses:
                 # Goldstone
-                prior['log({0}:a)'.format(TwoPts['Gm{0}'.format(mass)])] = gv.log(gv.gvar(N * [an]))
-                prior['log(dE:{0})'.format(TwoPts['Gm{0}'.format(mass)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
-                prior['log({0}:a)'.format(TwoPts['Gm{0}'.format(mass)])][0] = gv.log(gv.gvar(A_eff['Gm{0}'.format(mass)].mean,PriorLoosener*loosener*A_eff['Gm{0}'.format(mass)].mean))
-                prior['log(dE:{0})'.format(TwoPts['Gm{0}'.format(mass)])][0] = gv.log(gv.gvar(M_eff['Gm{0}'.format(mass)].mean,PriorLoosener*Mloosener*M_eff['Gm{0}'.format(mass)].mean))
+                prior['log({0}:a)'.format(TwoPts['BGm{0}'.format(mass)])] = gv.log(gv.gvar(N * [an]))
+                prior['log(dE:{0})'.format(TwoPts['BGm{0}'.format(mass)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
+                prior['log({0}:a)'.format(TwoPts['BGm{0}'.format(mass)])][0] = gv.log(gv.gvar(A_eff['BGm{0}'.format(mass)].mean,PriorLoosener*loosener*A_eff['BGm{0}'.format(mass)].mean))
+                prior['log(dE:{0})'.format(TwoPts['BGm{0}'.format(mass)])][0] = gv.log(gv.gvar(M_eff['BGm{0}'.format(mass)].mean,PriorLoosener*Mloosener*M_eff['BGm{0}'.format(mass)].mean))
         
 
                 # Goldstone -- oscillating part
-                prior['log(o{0}:a)'.format(TwoPts['Gm{0}'.format(mass)])] = gv.log(gv.gvar(N * [an]))
-                prior['log(dE:o{0})'.format(TwoPts['Gm{0}'.format(mass)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
+                prior['log(o{0}:a)'.format(TwoPts['BGm{0}'.format(mass)])] = gv.log(gv.gvar(N * [an]))
+                prior['log(dE:o{0})'.format(TwoPts['BGm{0}'.format(mass)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
                 #prior['log(o{0}:a)'.format(TwoPts['Gm{0}'.format(mass)])][0] = gv.log(gv.gvar(A_eff['Gm{0}'.format(mass)].mean,loosener*A_eff['Gm{0}'.format(mass)].mean))
-                prior['log(dE:o{0})'.format(TwoPts['Gm{0}'.format(mass)])][0] = gv.log(gv.gvar(M_eff['Gm{0}'.format(mass)].mean+Lambda*a,PriorLoosener*oMloosener*(M_eff['Gm{0}'.format(mass)].mean+Lambda*a)))
-        if 'NG' in FitCorrs:
+                prior['log(dE:o{0})'.format(TwoPts['BGm{0}'.format(mass)])][0] = gv.log(gv.gvar(M_eff['BGm{0}'.format(mass)].mean+Lambda*a,PriorLoosener*oMloosener*(M_eff['BGm{0}'.format(mass)].mean+Lambda*a)))
+        if 'BNG' in FitCorrs:
             for mass in masses:
                 # Non-Goldstone
-                prior['log({0}:a)'.format(TwoPts['NGm{0}'.format(mass)])] = gv.log(gv.gvar(N * [an]))
-                prior['log(dE:{0})'.format(TwoPts['NGm{0}'.format(mass)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
+                prior['log({0}:a)'.format(TwoPts['BNGm{0}'.format(mass)])] = gv.log(gv.gvar(N * [an]))
+                prior['log(dE:{0})'.format(TwoPts['BNGm{0}'.format(mass)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
                 #prior['log({0}:a)'.format(TwoPts['NGm{0}'.format(mass)])][0] = gv.log(gv.gvar(A_eff['NGm{0}'.format(mass)].mean,loosener*A_eff['NGm{0}'.format(mass)].mean))
-                prior['log(dE:{0})'.format(TwoPts['NGm{0}'.format(mass)])][0] = gv.log(gv.gvar(M_eff['NGm{0}'.format(mass)].mean,PriorLoosener*Mloosener*M_eff['NGm{0}'.format(mass)].mean))
+                prior['log(dE:{0})'.format(TwoPts['BNGm{0}'.format(mass)])][0] = gv.log(gv.gvar(M_eff['BNGm{0}'.format(mass)].mean,PriorLoosener*Mloosener*M_eff['BNGm{0}'.format(mass)].mean))
         
 
                 # Non-Goldstone -- oscillating part
-                prior['log(o{0}:a)'.format(TwoPts['NGm{0}'.format(mass)])] = gv.log(gv.gvar(N * [an]))
-                prior['log(dE:o{0})'.format(TwoPts['NGm{0}'.format(mass)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
+                prior['log(o{0}:a)'.format(TwoPts['BNGm{0}'.format(mass)])] = gv.log(gv.gvar(N * [an]))
+                prior['log(dE:o{0})'.format(TwoPts['BNGm{0}'.format(mass)])] = gv.log(gv.gvar(N * ['{0}({1})'.format(Lambda*a,PriorLoosener*0.5*Lambda*a)]))
                 #prior['log(o{0}:a)'.format(TwoPts['NGm{0}'.format(mass)])][0] = gv.log(gv.gvar(A_eff['NGm{0}'.format(mass)].mean,loosener*A_eff['NGm{0}'.format(mass)].mean))
-                prior['log(dE:o{0})'.format(TwoPts['NGm{0}'.format(mass)])][0] = gv.log(gv.gvar(M_eff['NGm{0}'.format(mass)].mean+Lambda*a,PriorLoosener*oMloosener*(M_eff['NGm{0}'.format(mass)].mean+Lambda*a)))
+                prior['log(dE:o{0})'.format(TwoPts['BNGm{0}'.format(mass)])][0] = gv.log(gv.gvar(M_eff['BNGm{0}'.format(mass)].mean+Lambda*a,PriorLoosener*oMloosener*(M_eff['BNGm{0}'.format(mass)].mean+Lambda*a)))
     if All == True:
         if 'S' in FitCorrs:
             for mass in masses: 
@@ -387,24 +445,37 @@ def make_prior(All,N,M_eff,A_eff,V_eff,Autoprior):
                         prior['SVnn_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(V_eff['Sm{0}_tw{1}'.format(mass,twist)].mean,PriorLoosener*loosener*V_eff['Sm{0}_tw{1}'.format(mass,twist)].mean)
                         prior['SVno_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [SVn]])
                         prior['SVno_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(SV0)
-                        if twist != '0':                    
-                            prior['SVon_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [SVn]])
-                            prior['SVon_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(SV0)
-                            prior['SVoo_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [SVn]])
-                            prior['SVoo_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(SV0)
+                        #if twist != '0':                    
+                        prior['SVon_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [SVn]])
+                        prior['SVon_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(SV0)
+                        prior['SVoo_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [SVn]])
+                        prior['SVoo_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(SV0)
         if 'V' in FitCorrs:
             for mass in masses:
                 for twist in twists:
                     if qsqPos['m{0}_tw{1}'.format(mass,twist)] == 1:
                         prior['VVnn_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [VVn]])
-                        prior['VVnn_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(V_eff['Vm{0}_tw{1}'.format(mass,twist)].mean,PriorLoosener*loosener*V_eff['Sm{0}_tw{1}'.format(mass,twist)].mean)
+                        prior['VVnn_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(V_eff['Vm{0}_tw{1}'.format(mass,twist)].mean,PriorLoosener*loosener*V_eff['Vm{0}_tw{1}'.format(mass,twist)].mean)
                         prior['VVno_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [VVn]])
                         prior['VVno_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(VV0)
-                        if twist != '0':                    
-                            prior['VVon_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [VVn]])
-                            prior['VVon_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(VV0)
-                            prior['VVoo_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [VVn]])
-                            prior['VVoo_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(VV0)
+                        #if twist != '0':                    
+                        prior['VVon_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [VVn]])
+                        prior['VVon_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(VV0)
+                        prior['VVoo_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [VVn]])
+                        prior['VVoo_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(VV0)
+        if 'T' in FitCorrs:
+            for mass in masses:
+                for twist in twists:
+                    if qsqPos['m{0}_tw{1}'.format(mass,twist)] == 1:
+                        prior['TVnn_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [TVn]])
+                        prior['TVnn_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(V_eff['Tm{0}_tw{1}'.format(mass,twist)].mean,PriorLoosener*loosener*V_eff['Tm{0}_tw{1}'.format(mass,twist)].mean)
+                        prior['TVno_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [TVn]])
+                        prior['TVno_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(TV0)
+                        #if twist != '0':                    
+                        prior['TVon_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [TVn]])
+                        prior['TVon_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(TV0)
+                        prior['TVoo_m{0}_tw{1}'.format(mass,twist)] = gv.gvar(N * [N * [TVn]])
+                        prior['TVoo_m{0}_tw{1}'.format(mass,twist)][0][0] = gv.gvar(TV0)
     return(prior)
 
 
@@ -412,59 +483,74 @@ def make_prior(All,N,M_eff,A_eff,V_eff,Autoprior):
 def make_models():
     print('Masses:',masses,'Twists:',twists, 'Ts:',Ts,'Corrs:',FitCorrs)
     """ Create models to fit data. """
-    tminG = Fit['tminG']
-    tminNG = Fit['tminNG']
-    tminD = Fit['tminD']
+    tminBG = Fit['tminBG']
+    tminBNG = Fit['tminBNG']
+    tminKG = Fit['tminKG']
+    tminKNG = Fit['tminKNG']
     #tmaxG = Fit['tmaxG']
     #tmaxNG = Fit['tmaxNG']
     #tmaxD = Fit['tmaxD']
     Stmin = Fit['Stmin']
     Vtmin = Fit['Vtmin']
+    Ttmin = Fit['Ttmin']
     tp = Fit['tp']
     twopts  = []
     Sthreepts = []
     Vthreepts = []
-    if 'G' in FitCorrs:
+    Tthreepoints = []
+    if 'BG' in FitCorrs:
         for i,mass in enumerate(masses):        
-            GCorrelator = copy.deepcopy(TwoPts['Gm{0}'.format(mass)])
-            twopts.append(cf.Corr2(datatag=GCorrelator, tp=tp, tmin=tminG, tmax=tmaxesG[i], a=('{0}:a'.format(GCorrelator), 'o{0}:a'.format(GCorrelator)), b=('{0}:a'.format(GCorrelator), 'o{0}:a'.format(GCorrelator)), dE=('dE:{0}'.format(GCorrelator), 'dE:o{0}'.format(GCorrelator)),s=(1.,-1.)))
-    if 'NG' in FitCorrs:
+            BGCorrelator = copy.deepcopy(TwoPts['BGm{0}'.format(mass)])
+            twopts.append(cf.Corr2(datatag=BGCorrelator, tp=tp, tmin=tminBG, tmax=tmaxesBG[i], a=('{0}:a'.format(BGCorrelator), 'o{0}:a'.format(BGCorrelator)), b=('{0}:a'.format(BGCorrelator), 'o{0}:a'.format(BGCorrelator)), dE=('dE:{0}'.format(BGCorrelator), 'dE:o{0}'.format(BGCorrelator)),s=(1.,-1.)))
+    if 'BNG' in FitCorrs:
         for i,mass in enumerate(masses):
-            NGCorrelator = copy.deepcopy(TwoPts['NGm{0}'.format(mass)])
-            twopts.append(cf.Corr2(datatag=NGCorrelator, tp=tp, tmin=tminNG, tmax=tmaxesNG[i], a=('{0}:a'.format(NGCorrelator), 'o{0}:a'.format(NGCorrelator)), b=('{0}:a'.format(NGCorrelator), 'o{0}:a'.format(NGCorrelator)), dE=('dE:{0}'.format(NGCorrelator), 'dE:o{0}'.format(NGCorrelator)),s=(1.,-1.)))
-    if 'D' in FitCorrs:
+            BNGCorrelator = copy.deepcopy(TwoPts['BNGm{0}'.format(mass)])
+            twopts.append(cf.Corr2(datatag=BNGCorrelator, tp=tp, tmin=tminBNG, tmax=tmaxesBNG[i], a=('{0}:a'.format(BNGCorrelator), 'o{0}:a'.format(BNGCorrelator)), b=('{0}:a'.format(BNGCorrelator), 'o{0}:a'.format(BNGCorrelator)), dE=('dE:{0}'.format(BNGCorrelator), 'dE:o{0}'.format(BNGCorrelator)),s=(1.,-1.)))
+    if 'KG' in FitCorrs:
         for i,twist in enumerate(twists):
-            DCorrelator = copy.deepcopy(TwoPts['Dtw{0}'.format(twist)])
-            if twist != '0':                
-                twopts.append(cf.Corr2(datatag=DCorrelator, tp=tp, tmin=tminD, tmax=tmaxesD[i],a=('{0}:a'.format(DCorrelator), 'o{0}:a'.format(DCorrelator)), b=('{0}:a'.format(DCorrelator), 'o{0}:a'.format(DCorrelator)), dE=('dE:{0}'.format(DCorrelator), 'dE:o{0}'.format(DCorrelator)),s=(1.,-1.)))
-            else:
-                twopts.append(cf.Corr2(datatag=DCorrelator, tp=tp, tmin=tminD,tmax=tmaxesD[i], a=('{0}:a'.format(DCorrelator)), b=('{0}:a'.format(DCorrelator)), dE=('dE:{0}'.format(DCorrelator))))
+            KGCorrelator = copy.deepcopy(TwoPts['KGtw{0}'.format(twist)])
+            #if twist != '0':                
+            twopts.append(cf.Corr2(datatag=KGCorrelator, tp=tp, tmin=tminKG, tmax=tmaxesKG[i],a=('{0}:a'.format(KGCorrelator), 'o{0}:a'.format(KGCorrelator)), b=('{0}:a'.format(KGCorrelator), 'o{0}:a'.format(KGCorrelator)), dE=('dE:{0}'.format(KGCorrelator), 'dE:o{0}'.format(KGCorrelator)),s=(1.,-1.)))
+    if 'KNG' in FitCorrs:
+        for i,twist in enumerate(twists):
+            KNGCorrelator = copy.deepcopy(TwoPts['KNGtw{0}'.format(twist)])
+            #if twist != '0':                
+            twopts.append(cf.Corr2(datatag=KNGCorrelator, tp=tp, tmin=tminKNG, tmax=tmaxesKNG[i],a=('{0}:a'.format(KNGCorrelator), 'o{0}:a'.format(KNGCorrelator)), b=('{0}:a'.format(KNGCorrelator), 'o{0}:a'.format(KNGCorrelator)), dE=('dE:{0}'.format(KNGCorrelator), 'dE:o{0}'.format(KNGCorrelator)),s=(1.,-1.)))
+            
                 
     if 'S' in FitCorrs:
         for mass in masses:
-            GCorrelator = copy.deepcopy(TwoPts['Gm{0}'.format(mass)])
-            NGCorrelator = copy.deepcopy(TwoPts['NGm{0}'.format(mass)])
+            BGCorrelator = copy.deepcopy(TwoPts['BGm{0}'.format(mass)])
+            BNGCorrelator = copy.deepcopy(TwoPts['BNGm{0}'.format(mass)])
             for twist in twists:
-                DCorrelator = copy.deepcopy(TwoPts['Dtw{0}'.format(twist)])
+                KGCorrelator = copy.deepcopy(TwoPts['KGtw{0}'.format(twist)])
                 if qsqPos['m{0}_tw{1}'.format(mass,twist)] == 1:
                     for T in Ts:
-                        if twist != '0':
-                            Sthreepts.append(cf.Corr3(datatag=ThreePts['Sm{0}_tw{1}_T{2}'.format(mass,twist,T)], T=T, tmin=Stmin,  a=('{0}:a'.format(DCorrelator), 'o{0}:a'.format(DCorrelator)), dEa=('dE:{0}'.format(DCorrelator), 'dE:o{0}'.format(DCorrelator)), sa=(1,-1), b=('{0}:a'.format(GCorrelator), 'o{0}:a'.format(GCorrelator)), dEb=('dE:{0}'.format(GCorrelator), 'dE:o{0}'.format(GCorrelator)), sb=(1,-1), Vnn='SVnn_m'+str(mass)+'_tw'+str(twist), Vno='SVno_m'+str(mass)+'_tw'+str(twist), Von='SVon_m'+str(mass)+'_tw'+str(twist), Voo='SVoo_m'+str(mass)+'_tw'+str(twist)))
-                        else:
-                            Sthreepts.append(cf.Corr3(datatag=ThreePts['Sm{0}_tw{1}_T{2}'.format(mass,twist,T)], T=T, tmin=Stmin,  a=('{0}:a'.format(DCorrelator)), dEa=('dE:{0}'.format(DCorrelator)), b=('{0}:a'.format(GCorrelator), 'o{0}:a'.format(GCorrelator)), dEb=('dE:{0}'.format(GCorrelator), 'dE:o{0}'.format(GCorrelator)), sb=(1,-1), Vnn='SVnn_m'+str(mass)+'_tw'+str(twist), Vno='SVno_m'+str(mass)+'_tw'+str(twist)))
+                        #if twist != '0':
+                        Sthreepts.append(cf.Corr3(datatag=ThreePts['Sm{0}_tw{1}_T{2}'.format(mass,twist,T)], T=T, tmin=Stmin,  a=('{0}:a'.format(KGCorrelator), 'o{0}:a'.format(KGCorrelator)), dEa=('dE:{0}'.format(KGCorrelator), 'dE:o{0}'.format(KGCorrelator)), sa=(1,-1), b=('{0}:a'.format(BGCorrelator), 'o{0}:a'.format(BGCorrelator)), dEb=('dE:{0}'.format(BGCorrelator), 'dE:o{0}'.format(BGCorrelator)), sb=(1,-1), Vnn='SVnn_m'+str(mass)+'_tw'+str(twist), Vno='SVno_m'+str(mass)+'_tw'+str(twist), Von='SVon_m'+str(mass)+'_tw'+str(twist), Voo='SVoo_m'+str(mass)+'_tw'+str(twist)))
+                        
                         
     if 'V' in FitCorrs:
         for mass in masses:
-            GCorrelator = copy.deepcopy(TwoPts['Gm{0}'.format(mass)])
-            NGCorrelator = copy.deepcopy(TwoPts['NGm{0}'.format(mass)])
+            BGCorrelator = copy.deepcopy(TwoPts['BGm{0}'.format(mass)])
+            BNGCorrelator = copy.deepcopy(TwoPts['BNGm{0}'.format(mass)])
             for twist in twists:
-                DCorrelator = copy.deepcopy(TwoPts['Dtw{0}'.format(twist)])
+                KGCorrelator = copy.deepcopy(TwoPts['KGtw{0}'.format(twist)])
                 if qsqPos['m{0}_tw{1}'.format(mass,twist)] == 1:
                     for T in Ts:                    
-                        if twist != '0':
-                            Vthreepts.append(cf.Corr3(datatag=ThreePts['Vm{0}_tw{1}_T{2}'.format(mass,twist,T)], T=T, tmin=Vtmin, a=('{0}:a'.format(DCorrelator), 'o{0}:a'.format(DCorrelator)), dEa=('dE:{0}'.format(DCorrelator), 'dE:o{0}'.format(DCorrelator)), sa=(1,-1), b=('{0}:a'.format(NGCorrelator), 'o{0}:a'.format(NGCorrelator)), dEb=('dE:{0}'.format(NGCorrelator), 'dE:o{0}'.format(NGCorrelator)), sb=(1,-1), Vnn='VVnn_m'+str(mass)+'_tw'+str(twist), Vno='VVno_m'+str(mass)+'_tw'+str(twist), Von='VVon_m'+str(mass)+'_tw'+str(twist), Voo='VVoo_m'+str(mass)+'_tw'+str(twist)))
-                        else:
-                            Vthreepts.append(cf.Corr3(datatag=ThreePts['Vm{0}_tw{1}_T{2}'.format(mass,twist,T)], T=T, tmin=Vtmin, a=('{0}:a'.format(DCorrelator)), dEa=('dE:{0}'.format(DCorrelator)), b=('{0}:a'.format(NGCorrelator), 'o{0}:a'.format(NGCorrelator)), dEb=('dE:{0}'.format(NGCorrelator), 'dE:o{0}'.format(NGCorrelator)), sb=(1,-1), Vnn='VVnn_m'+str(mass)+'_tw'+str(twist), Vno='VVno_m'+str(mass)+'_tw'+str(twist)))
+                        #if twist != '0':
+                        Vthreepts.append(cf.Corr3(datatag=ThreePts['Vm{0}_tw{1}_T{2}'.format(mass,twist,T)], T=T, tmin=Vtmin, a=('{0}:a'.format(KGCorrelator), 'o{0}:a'.format(KGCorrelator)), dEa=('dE:{0}'.format(KGCorrelator), 'dE:o{0}'.format(KGCorrelator)), sa=(1,-1), b=('{0}:a'.format(BNGCorrelator), 'o{0}:a'.format(BNGCorrelator)), dEb=('dE:{0}'.format(BNGCorrelator), 'dE:o{0}'.format(BNGCorrelator)), sb=(1,-1), Vnn='VVnn_m'+str(mass)+'_tw'+str(twist), Vno='VVno_m'+str(mass)+'_tw'+str(twist), Von='VVon_m'+str(mass)+'_tw'+str(twist), Voo='VVoo_m'+str(mass)+'_tw'+str(twist)))
+
+    if 'T' in FitCorrs:
+        for mass in masses:
+            BGCorrelator = copy.deepcopy(TwoPts['BGm{0}'.format(mass)])
+            BNGCorrelator = copy.deepcopy(TwoPts['BNGm{0}'.format(mass)])
+            for twist in twists:
+                KNGCorrelator = copy.deepcopy(TwoPts['KNGtw{0}'.format(twist)])
+                if qsqPos['m{0}_tw{1}'.format(mass,twist)] == 1:
+                    for T in Ts:                    
+                        #if twist != '0':
+                        Tthreepts.append(cf.Corr3(datatag=ThreePts['Tm{0}_tw{1}_T{2}'.format(mass,twist,T)], T=T, tmin=Ttmin, a=('{0}:a'.format(KNGCorrelator), 'o{0}:a'.format(KNGCorrelator)), dEa=('dE:{0}'.format(KNGCorrelator), 'dE:o{0}'.format(KNGCorrelator)), sa=(1,-1), b=('{0}:a'.format(BNGCorrelator), 'o{0}:a'.format(BNGCorrelator)), dEb=('dE:{0}'.format(BNGCorrelator), 'dE:o{0}'.format(BNGCorrelator)), sb=(1,-1), Vnn='TVnn_m'+str(mass)+'_tw'+str(twist), Vno='TVno_m'+str(mass)+'_tw'+str(twist), Von='TVon_m'+str(mass)+'_tw'+str(twist), Voo='TVoo_m'+str(mass)+'_tw'+str(twist)))
                         
     if Chained == True:            
         twopts = twopts
@@ -473,10 +559,13 @@ def make_models():
             threepts.append(Sthreepts[element])
         for element in range(len(Vthreepts)):
             threepts.append(Vthreepts[element])
+        for element in range(len(Tthreepts)):
+            threepts.append(Tthreepts[element])
         return(twopts,threepts)
     else:
         twopts.extend(Sthreepts)
         twopts.extend(Vthreepts)
+        twopts.extend(Tthreepts)
         return(twopts)
 
     
@@ -1238,11 +1327,11 @@ if DoFit == True:
             FitMasses = [i]
             for j in range(5):                 
                 FitTwists = [j]
-                TwoPts,ThreePts,masses,twists,Ts,tmaxesG,tmaxesNG,tmaxesD,qsqPos = make_params(FitMasses, FitTwists,FitTs)
+                TwoPts,ThreePts,masses,twists,Ts,tmaxesBG,tmaxesBNG,tmaxesKG,tmaxesKNG,qsqPos = make_params(FitMasses, FitTwists,FitTs)
                 main(Autoprior,data)
                             
     else:        
-        TwoPts,ThreePts,masses,twists,Ts,tmaxesG,tmaxesNG,tmaxesD,qsqPos = make_params(FitMasses,FitTwists,FitTs)
+        TwoPts,ThreePts,masses,twists,Ts,tmaxesBG,tmaxesBNG,tmaxesKG,tmaxesKNG,qsqPos = make_params(FitMasses,FitTwists,FitTs)
         if TestData == True:
             test_data()
         main(Autoprior,data)
