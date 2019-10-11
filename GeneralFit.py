@@ -574,12 +574,12 @@ def modelsandsvd():
     if Chained == True:     
         twopts,threepts = make_models()
         models = [twopts, threepts]
-        File2 = 'Ps/Chain2pts{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}{11}.pickle'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['tminG'],Fit['tminNG'],Fit['tminD'],tmaxesG,tmaxesNG,tmaxesD,FitAllTwists)
-        File3 = 'Ps/Chain3pts{0}{1}{2}{3}{4}{5}{6}{7}.pickle'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['Stmin'],Fit['Vtmin'],FitAllTwists)
+        File2 = 'Ps/Chain2pts{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}{11}{12}{13}.pickle'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['tminDG'],Fit['tminDNG'],Fit['tminKG'],Fit['tminKNG'],tmaxesBG,tmaxesBNG,tmaxesKG,tmaxesKNG,FitAllTwists)
+        File3 = 'Ps/Chain3pts{0}{1}{2}{3}{4}{5}{6}{7}{8}.pickle'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],FitAllTwists)
     else:
         models = make_models()   
     print('Models made: ', models)
-    File = 'Ps/{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}{11}{12}{13}{14}.pickle'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['Stmin'],Fit['Vtmin'],Fit['tminG'],Fit['tminNG'],Fit['tminD'],tmaxesG,tmaxesNG,tmaxesD,Chained,FitAllTwists)
+    File = 'Ps/{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}.pickle'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],Fit['tminBG'],Fit['tminBNG'],Fit['tminKG'],Fit['tminKNG'],tmaxesBG,tmaxesBNG,tmaxesKG,tmaxesKNG,Chained,FitAllTwists)
     if AutoSvd == True:
         if Chained == True:
             #####################################CHAINED########################################
@@ -691,7 +691,7 @@ def main(Autoprior,data):
             cond = (lambda: Nexp <= 8) if FitAll else (lambda: Nexp <= Nmax)
             cond2 = (lambda: Nexp <= 8) if FitAll else (lambda: Nexp <= Nmax)
         while cond() and cond2():           
-            fname2 = 'Ps/Chain2pts{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}{11}'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['tminG'],Fit['tminNG'],Fit['tminD'],tmaxesG,tmaxesNG,tmaxesD,FitAllTwists)            
+            fname2 = 'Ps/Chain2pts{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}{11}{12}{13}'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['tminBG'],Fit['tminBNG'],Fit['tminKG'],Fit['tminKNG'],tmaxesBG,tmaxesBNG,tmaxesKG,tmaxesKNG,FitAllTwists)            
             p0 = load_p0(p0,Nexp,fname2,TwoKeys,[])                    
             GBF1 = copy.deepcopy(GBF2)
             print('Making Prior')
@@ -733,8 +733,8 @@ def main(Autoprior,data):
                     p0=fit.pmean
                     save_p0(p0,Nexp,fname2,TwoKeys,[])
                     if SaveFit == True:
-                        gv.dump(fit.p,'Fits/{5}5_2pts_Q{4:.2f}_Nexp{0}_Stmin{1}_Vtmin{2}_svd{3:.5f}_chi{6:.3f}'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof))
-                        f = open('Fits/{5}5_2pts_Q{4:.2f}_Nexp{0}_Stmin{1}_Vtmin{2}_svd{3:.5f}_chi{6:.3f}.txt'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof), 'w')
+                        gv.dump(fit.p,'Fits/{6}5_2pts_Q{5:.2f}_Nexp{0}_Stmin{1}_Vtmin{2}_Ttmin{3}_svd{4:.5f}_chi{7:.3f}'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof))
+                        f = open('Fits/{6}5_2pts_Q{5:.2f}_Nexp{0}_Stmin{1}_Vtmin{2}_Ttmin{3}_svd{4:.5f}_chi{7:.3f}.txt'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof), 'w')
                         f.write(fit.format(pstyle=None if Nexp<3 else'v'))
                         f.close()
             else:
@@ -764,7 +764,7 @@ def main(Autoprior,data):
         cond = (lambda: Nexp <= 8) if FitAll else (lambda: GBF2 - GBF1 > 0.01)
         #cond2 = (lambda: Nexp <= 8) if Marginalised else (lambda: GBF2 - GBF1 > 0.01)
         while cond():# and cond2():           
-            fname3 = 'Ps/Chain3pts{0}{1}{2}{3}{4}{5}{6}{7}{8}'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['Stmin'],Fit['Vtmin'],FitAllTwists,Marginalised)
+            fname3 = 'Ps/Chain3pts{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}'.format(Fit['conf'],FitMasses,FitTwists,FitTs,FitCorrs,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],FitAllTwists,Marginalised)
             if Marginalised == False:
                 p0 = load_p0(p0,Nexp,fname3,TwoKeys,ThreeKeys)
             else:
@@ -831,8 +831,8 @@ def main(Autoprior,data):
                     #else:
                     #    save_p0(p0,NMarg,fname3,TwoKeys,ThreeKeys)      #Don't save gloabal elements if margianlised
                     if SaveFit == True:
-                        gv.dump(fit.p,'Fits/{5}5_3pts_Q{4:.2f}_Nexp{0}_NMarg{7}_Stmin{1}_Vtmin{2}_svd{3:.5f}_chi{6:.3f}_pl{8}_svdfac{9}'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof,NMarg,PriorLoosener,SvdFactor))
-                        f = open('Fits/{5}5_3pts_Q{4:.2f}_Nexp{0}_NMarg{7}_Stmin{1}_Vtmin{2}_svd{3:.5f}_chi{6:.3f}_pl{8}_svdfac{9}.txt'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof,NMarg,PriorLoosener,SvdFactor), 'w')
+                        gv.dump(fit.p,'Fits/{6}5_3pts_Q{5:.2f}_Nexp{0}_NMarg{7}_Stmin{1}_Vtmin{2}_Ttmin{3}_svd{4:.5f}_chi{7:.3f}_pl{9}_svdfac{10}'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof,NMarg,PriorLoosener,SvdFactor))
+                        f = open('Fits/{6}5_3pts_Q{5:.2f}_Nexp{0}_NMarg{8}_Stmin{1}_Vtmin{2}_Ttmin{3}_svd{4:.5f}_chi{7:.3f}_pl{9}_svdfac{10}.txt'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof,NMarg,PriorLoosener,SvdFactor), 'w')
                         f.write(fit.format(pstyle=None if Nexp<3 else'v'))
                         f.close()
                         
