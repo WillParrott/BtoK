@@ -17,6 +17,7 @@ F['conf']='F'
 F['filename'] = 'Fits/F5_3pts_Q1.00_Nexp1_Stmin2_Vtmin1_svd0.00157_chi0.360'
 F['Masses'] = ['0.449','0.566','0.683','0.8']
 F['Twists'] = ['0','0.4281','1.282','2.141','2.570','2.993']
+F['m_l'] = '0.0074'
 F['m_s'] = '0.0376'
 F['m_ssea'] = 0.037
 F['m_lsea'] = 0.0074
@@ -24,52 +25,19 @@ F['Ts'] = [14,17,20]
 F['tp'] = 96
 F['L'] = 32
 F['w0/a'] = '1.9006(20)'
-F['goldTag'] = 'meson.m{0}_m{1}'
-F['nonGoldTag'] = 'meson-G5T.m{0}_m{1}'
-F['daugterTag'] = ['etas','etas_p0.0728','etas_p0.218','etas_p0.364','etas_p0.437','etas_p0.509'] 
-F['threePtTag'] = ['{0}.T{1}_m{2}_m{3}_m{2}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}']
+F['BG-Tag'] = 'B_G5-G5_m{0}'
+F['BNG-Tag'] = 'B_G5T-G5T_m{0}'
+F['KG-Tag'] = 'K_G5-G5_tw{0}'
+F['KNG-Tag'] = 'K_G5-G5X_tw{0}'
+F['threePtTag'] = '{0}_T{1}_m{2}_m{3}_m{4}_tw{5}'
 
-######################## SF PARAMETERS ####################################
-SF = collections.OrderedDict()
-SF['conf']='SF'
-SF['filename'] = 'Fits/SF5_3pts_Q1.00_Nexp1_Stmin2_Vtmin2_svd0.00457_chi0.106'
-SF['Masses'] = ['0.274','0.450','0.6','0.8']
-SF['Twists'] = ['0','1.261','2.108','2.946','3.624']
-SF['m_s'] = '0.0234'
-SF['m_ssea'] = 0.024
-SF['m_lsea'] = 0.0048
-SF['Ts'] = [20,25,30]
-SF['tp'] = 144
-SF['L'] = 48
-SF['w0/a'] = '2.896(6)'
-SF['goldTag'] = 'meson.m{0}_m{1}'
-SF['nonGoldTag'] = 'meson2G5T.m{0}_m{1}'
-SF['daugterTag'] = ['etas_p0','etas_p0.143','eta_s_tw2.108_m0.0234','etas_p0.334','eta_s_tw3.624_m0.0234']
-SF['threePtTag'] = ['{0}.T{1}_m{2}_m{3}_m{2}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}']
 
-######################## SF PARAMETERS ####################################
-UF = collections.OrderedDict()
-UF['conf']='UF'
-UF['filename'] = 'Fits/UF5_3pts_Q1.00_Nexp1_NMarg3_Stmin2_Vtmin2_svd0.06052_chi0.163_pl1.0_svdfac1.0'
-UF['Masses'] = ['0.194','0.45','0.6','0.8']
-UF['Twists'] = ['0','0.706','1.529','2.235','4.705']
-UF['m_s'] = '0.0165'
-UF['m_ssea'] = 0.0158
-UF['m_lsea'] = 0.00316
-UF['Ts'] = [33,40]
-UF['tp'] = 192
-UF['L'] = 64
-UF['w0/a'] = '3.892(12)'
-UF['goldTag'] = 'meson.m{0}_m{1}'
-UF['nonGoldTag'] = 'meson-G5T.m{0}_m{1}'
-UF['daugterTag'] = ['etas-meson.m0.0165_m0.0165_tw0','etas-meson.m0.0165_m0.0165_tw0.706','etas-meson.m0.0165_m0.0165_tw1.529','etas-meson.m0.0165_m0.0165_tw2.235','etas-meson.m0.0165_m0.0165_tw4.705']
-UF['threePtTag'] = ['{0}.T{1}_m{2}_m{3}_m{2}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}','{0}.T{1}_m{2}_m{3}_m{2}_tw{4}']
 ##################### USER INPUTS ##########################################
 Masses = collections.OrderedDict()
 Twists = collections.OrderedDict()
 ############################################################################
 
-Fits = [F,SF]#,UF]                                         # Choose to fit F, SF or UF
+Fits = [F]#,SF]#,UF]                                         # Choose to fit F, SF or UF
 Masses['F'] = [0,1,2,3]                                     # Choose which masses to fit
 Twists['F'] = [0,1,2,3,4]#,5]
 Masses['SF'] = [0,1,2,3]
@@ -91,9 +59,10 @@ def make_params():
     w0 = gv.gvar('0.1715(9)')  #fm
     hbar = gv.gvar('6.58211928(15)')
     c = 2.99792458
-    for Fit in [F,SF,UF]:
-        Fit['a'] = w0/((hbar*c*1e-2)*gv.gvar(Fit['w0/a']))
+    #for Fit in [F,S,UF]:
+    #    Fit['a'] = w0/((hbar*c*1e-2)*gv.gvar(Fit['w0/a']))
     for Fit in Fits:
+        Fit['a'] = w0/((hbar*c*1e-2)*gv.gvar(Fit['w0/a']))
         Fit['masses'] = []
         Fit['twists'] = []
         Fit['momenta'] = []
@@ -105,10 +74,11 @@ def make_params():
         for twist in Fit['twists']:
             Fit['momenta'].append(np.sqrt(3)*np.pi*float(twist)/Fit['L'])
         for Twist in Fit['Twists']:
-            Fit['Dtw{0}'.format(Twist)] = Fit['daugterTag'][Fit['Twists'].index(Twist)]
-        for mass in Fit['Masses']:
-            Fit['Gm{0}'.format(mass)] = Fit['goldTag'].format(Fit['m_s'],mass)
-            Fit['NGm{0}'.format(mass)] = Fit['nonGoldTag'].format(Fit['m_s'],mass)
+            Fit['KGtw{0}'.format(Twist)] = Fit['KG-Tag'].format(Twist)
+            Fit['KNGtw{0}'.format(Twist)] = Fit['KNG-Tag'].format(Twist)
+        for Mass in Fit['Masses']:
+            Fit['BGm{0}'.format(Mass)] = Fit['BG-Tag'].format(Mass)
+            Fit['BNGm{0}'.format(Mass)] = Fit['BNG-Tag'].format(Mass)
                    
     return()
 
@@ -117,19 +87,21 @@ def get_results(Fit):
     Vnn = collections.OrderedDict()
     p = gv.load(Fit['filename'])    
     for i in range(len(Fit['twists'])):
-        Fit['M_D_tw{0}'.format(Fit['twists'][i])] =  gv.sqrt(p['dE:{0}'.format(Fit['Dtw{0}'.format(Fit['twists'][i])])][0]**2 - Fit['momenta'][i]**2)
-        Fit['E_D_tw{0}'.format(Fit['twists'][i])] = p['dE:{0}'.format(Fit['Dtw{0}'.format(Fit['twists'][i])])][0]
-    
+        Fit['M_KG_tw{0}'.format(Fit['twists'][i])] =  gv.sqrt(p['dE:{0}'.format(Fit['KGtw{0}'.format(Fit['twists'][i])])][0]**2 - Fit['momenta'][i]**2)
+        Fit['E_KG_tw{0}'.format(Fit['twists'][i])] = p['dE:{0}'.format(Fit['KGtw{0}'.format(Fit['twists'][i])])][0]
+        Fit['M_KNG_tw{0}'.format(Fit['twists'][i])] =  gv.sqrt(p['dE:{0}'.format(Fit['KNGtw{0}'.format(Fit['twists'][i])])][0]**2 - Fit['momenta'][i]**2)
+        Fit['E_KNG_tw{0}'.format(Fit['twists'][i])] = p['dE:{0}'.format(Fit['KNGtw{0}'.format(Fit['twists'][i])])][0]
     for mass in Fit['masses']:
-        Fit['M_G_m{0}'.format(mass)] = p['dE:{0}'.format(Fit['Gm{0}'.format(mass)])][0]
-        Fit['M_Go_m{0}'.format(mass)] = p['dE:o{0}'.format(Fit['Gm{0}'.format(mass)])][0]
-        Fit['M_NG_m{0}'.format(mass)] = p['dE:{0}'.format(Fit['NGm{0}'.format(mass)])][0]
-        Fit['M_NGo_m{0}'.format(mass)] = p['dE:o{0}'.format(Fit['NGm{0}'.format(mass)])][0]
+        Fit['M_BG_m{0}'.format(mass)] = p['dE:{0}'.format(Fit['BGm{0}'.format(mass)])][0]
+        Fit['M_BGo_m{0}'.format(mass)] = p['dE:o{0}'.format(Fit['BGm{0}'.format(mass)])][0]
+        Fit['M_BNG_m{0}'.format(mass)] = p['dE:{0}'.format(Fit['BNGm{0}'.format(mass)])][0]
+        Fit['M_BNGo_m{0}'.format(mass)] = p['dE:o{0}'.format(Fit['BNGm{0}'.format(mass)])][0]
         #print(gv.evalcorr([Fit['M_NG_m{0}'.format(mass)],Fit['M_G_m{0}'.format(mass)]]))    
         for twist in Fit['twists']:
             if 'SVnn_m{0}_tw{1}'.format(mass,twist) in p:
-                Fit['Sm{0}_tw{1}'.format(mass,twist)] = 2*2*gv.sqrt(Fit['E_D_tw{0}'.format(twist)]*Fit['M_G_m{0}'.format(mass)])*p['SVnn_m{0}_tw{1}'.format(mass,twist)][0][0]
-                Fit['Vm{0}_tw{1}'.format(mass,twist)] = 2*2*gv.sqrt(Fit['E_D_tw{0}'.format(twist)]*Fit['M_G_m{0}'.format(mass)])*p['VVnn_m{0}_tw{1}'.format(mass,twist)][0][0]
+                Fit['Sm{0}_tw{1}'.format(mass,twist)] = 2*2*gv.sqrt(Fit['E_KG_tw{0}'.format(twist)]*Fit['M_BG_m{0}'.format(mass)])*p['SVnn_m{0}_tw{1}'.format(mass,twist)][0][0]
+                Fit['Vm{0}_tw{1}'.format(mass,twist)] = 2*2*gv.sqrt(Fit['E_KG_tw{0}'.format(twist)]*Fit['M_BG_m{0}'.format(mass)])*p['VVnn_m{0}_tw{1}'.format(mass,twist)][0][0]
+                Fit['Tm{0}_tw{1}'.format(mass,twist)] = 2*2*gv.sqrt(Fit['E_KG_tw{0}'.format(twist)]*Fit['M_BG_m{0}'.format(mass)])*p['TVnn_m{0}_tw{1}'.format(mass,twist)][0][0]  ### Is this correct???
     return()
 
 
@@ -139,47 +111,57 @@ def make_fs(Fit):
     print('Calc for', Fit['filename'] )
     get_results(Fit)
     F_0 = collections.OrderedDict()
-    F_plus = collections.OrderedDict()        
+    F_plus = collections.OrderedDict()
+    F_T = collections.OrderedDict()
     qSq = collections.OrderedDict()
     Z = collections.OrderedDict()
     Sca = collections.OrderedDict()
     Vec = collections.OrderedDict()
+    Ten = collections.OrderedDict()
     for mass in Fit['masses']:
         F_0[mass] = collections.OrderedDict()
-        F_plus[mass] = collections.OrderedDict()        
+        F_plus[mass] = collections.OrderedDict()
+        F_T[mass] = collections.OrderedDict()
         qSq[mass] = collections.OrderedDict()
         Z[mass] = collections.OrderedDict()
         Sca[mass] = collections.OrderedDict()
         Vec[mass] = collections.OrderedDict()
-        Z_v = (float(mass) - float(Fit['m_s']))*Fit['Sm{0}_tw0'.format(mass)]/((Fit['M_G_m{0}'.format(mass)] - Fit['M_D_tw0'])*Fit['Vm{0}_tw0'.format(mass)])
+        Ten[mass] = collections.OrderedDict()
+        Z_v = (float(mass) - float(Fit['m_s']))*Fit['Sm{0}_tw0'.format(mass)]/((Fit['M_BG_m{0}'.format(mass)] - Fit['M_KG_tw0'])*Fit['Vm{0}_tw0'.format(mass)])
         plt.errorbar((Fit['a']**2).mean,Z_v.mean,xerr=(Fit['a']**2).sdev,yerr=Z_v.sdev,label=mass)
         for twist in Fit['twists']:
             if 'Sm{0}_tw{1}'.format(mass,twist) in Fit:
-                delta = (float(mass) - float(Fit['m_s']))*(Fit['M_G_m{0}'.format(mass)]-Fit['E_D_tw{0}'.format(twist)])
-                qsq = Fit['M_G_m{0}'.format(mass)]**2 + Fit['M_D_tw{0}'.format(twist)]**2 - 2*Fit['M_G_m{0}'.format(mass)]*Fit['E_D_tw{0}'.format(twist)]
-                t = (Fit['M_G_m{0}'.format(mass)] + Fit['M_D_tw{0}'.format(twist)])**2
+                delta = (float(mass) - float(Fit['m_s']))*(Fit['M_BG_m{0}'.format(mass)]-Fit['E_KG_tw{0}'.format(twist)])
+                qsq = Fit['M_BG_m{0}'.format(mass)]**2 + Fit['M_KG_tw{0}'.format(twist)]**2 - 2*Fit['M_BG_m{0}'.format(mass)]*Fit['E_KG_tw{0}'.format(twist)]
+                t = (Fit['M_BG_m{0}'.format(mass)] + Fit['M_KG_tw{0}'.format(twist)])**2
                 z = (gv.sqrt(t-qsq)-gv.sqrt(t))/(gv.sqrt(t-qsq)+gv.sqrt(t)) 
                 if FitNegQsq == False:
                     if qsq.mean >= 0:
-                        F0 = (float(mass) - float(Fit['m_s']))*(1/(Fit['M_G_m{0}'.format(mass)]**2 - Fit['M_D_tw{0}'.format(twist)]**2))*Fit['Sm{0}_tw{1}'.format(mass,twist)]               
-                        F_0[mass][twist] = F0                    
+                        F0 = (float(mass) - float(Fit['m_s']))*(1/(Fit['M_BG_m{0}'.format(mass)]**2 - Fit['M_KG_tw{0}'.format(twist)]**2))*Fit['Sm{0}_tw{1}'.format(mass,twist)]
+                        FT = Fit['Sm{0}_tw{1}'.format(mass,twist)]*(Fit['M_BG_m{0}'.format(mass)]+Fit['M_KG_m{0}'.format(mass)])/(2*Fit['M_BG_m{0}'.format(mass)]*float(twist))        # Have we used correct masses?
+                        F_0[mass][twist] = F0
+                        F_T[mass][twist] = FT
                         qSq[mass][twist] = qsq                    
                         Z[mass][twist] = z
                         Sca[mass][twist] = Fit['Sm{0}_tw{1}'.format(mass,twist)]
-                        Vec[mass][twist] = Fit['Vm{0}_tw{1}'.format(mass,twist)]           
-                        A = Fit['M_G_m{0}'.format(mass)] + Fit['E_D_tw{0}'.format(twist)]
-                        B = (Fit['M_G_m{0}'.format(mass)]**2 - Fit['M_D_tw{0}'.format(twist)]**2)*(Fit['M_G_m{0}'.format(mass)] - Fit['E_D_tw{0}'.format(twist)])/qsq           
+                        Vec[mass][twist] = Fit['Vm{0}_tw{1}'.format(mass,twist)]
+                        Ten[mass][twist] = Fit['Tm{0}_tw{1}'.format(mass,twist)]
+                        A = Fit['M_BG_m{0}'.format(mass)] + Fit['E_KG_tw{0}'.format(twist)]
+                        B = (Fit['M_BG_m{0}'.format(mass)]**2 - Fit['M_KG_tw{0}'.format(twist)]**2)*(Fit['M_BG_m{0}'.format(mass)] - Fit['E_KG_tw{0}'.format(twist)])/qsq           
                         if twist != '0':
                             F_plus[mass][twist] = (1/(A-B))*(Z_v*Fit['Vm{0}_tw{1}'.format(mass,twist)] - B*F0)       
                 elif FitNegQsq == True:
-                    F0 = (float(mass) - float(Fit['m_s']))*(1/(Fit['M_G_m{0}'.format(mass)]**2 - Fit['M_D_tw{0}'.format(twist)]**2))*Fit['Sm{0}_tw{1}'.format(mass,twist)]               
-                    F_0[mass][twist] = F0                    
+                    F0 = (float(mass) - float(Fit['m_s']))*(1/(Fit['M_BG_m{0}'.format(mass)]**2 - Fit['M_KG_tw{0}'.format(twist)]**2))*Fit['Sm{0}_tw{1}'.format(mass,twist)]
+                    FT = Fit['Sm{0}_tw{1}'.format(mass,twist)]*(Fit['M_BG_m{0}'.format(mass)]+Fit['M_KG_m{0}'.format(mass)])/(2*Fit['M_BG_m{0}'.format(mass)]*float(twist))
+                    F_0[mass][twist] = F0
+                    F_T[mass][twist] = FT  
                     qSq[mass][twist] = qsq                    
                     Z[mass][twist] = z
                     Sca[mass][twist] = Fit['Sm{0}_tw{1}'.format(mass,twist)]
-                    Vec[mass][twist] = Fit['Vm{0}_tw{1}'.format(mass,twist)]           
-                    A = Fit['M_G_m{0}'.format(mass)] + Fit['E_D_tw{0}'.format(twist)]
-                    B = (Fit['M_G_m{0}'.format(mass)]**2 - Fit['M_D_tw{0}'.format(twist)]**2)*(Fit['M_G_m{0}'.format(mass)] - Fit['E_D_tw{0}'.format(twist)])/qsq           
+                    Vec[mass][twist] = Fit['Vm{0}_tw{1}'.format(mass,twist)]
+                    Ten[mass][twist] = Fit['Tm{0}_tw{1}'.format(mass,twist)]
+                    A = Fit['M_BG_m{0}'.format(mass)] + Fit['E_KG_tw{0}'.format(twist)]
+                    B = (Fit['M_BG_m{0}'.format(mass)]**2 - Fit['M_KG_tw{0}'.format(twist)]**2)*(Fit['M_BG_m{0}'.format(mass)] - Fit['E_KG_tw{0}'.format(twist)])/qsq           
                     if twist != '0':
                         F_plus[mass][twist] = (1/(A-B))*(Z_v*Fit['Vm{0}_tw{1}'.format(mass,twist)] - B*F0)
    # plt.legend()

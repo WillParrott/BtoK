@@ -18,7 +18,7 @@ import datetime
 ################ F PARAMETERS  #############################
 F = collections.OrderedDict()
 F['conf'] = 'F'
-F['filename'] = 'KBscalarvectortensor_43cfgs_negFalse.gpl'
+F['filename'] = 'KBscalarvectortensor_19cfgs_negFalse.gpl'
 F['masses'] = ['0.449','0.566','0.683','0.8']
 F['twists'] = ['0','0.4281','1.282','2.141','2.570']
 F['mtw'] = [[1,1,1,1,0,0],[1,1,1,1,1,0],[1,1,1,1,1,1],[1,1,1,1,1,1]]
@@ -61,12 +61,12 @@ F['threePtTag'] = '{0}_T{1}_m{2}_m{3}_m{4}_tw{5}'
 #############################################################
 DoFit = True
 FitAll = False
-TestData = False
+TestData = True
 Fit = F                                               # Choose to fit F, SF or UF
-FitMasses = [0,1,2,3]                                 # Choose which masses to fit
-FitTwists = [0,1,3,4]                               # Choose which twists to fit
+FitMasses = [1]#,2]#0,1,2,3]                                 # Choose which masses to fit
+FitTwists = [0,1,2,3,4]#0,1,2,3,4]                               # Choose which twists to fit
 FitTs = [0,1,2]
-FitCorrs = ['BG','KG','S']#,'BNG','KG','KNG','S','V','T']  # Choose which corrs to fit ['G','NG','D','S','V']
+FitCorrs = ['BNG','KNG','T']#'BG','BNG','KG','KNG','S','V','T']  # Choose which corrs to fit ['G','NG','D','S','V']
 FitAllTwists = True                             # Not just positive q^2
 Chained = True
 Marginalised = True
@@ -79,8 +79,8 @@ AutoSvd = True
 recalculateSvd = False
 SvdFactor = 1.0                       # Multiplies saved SVD
 PriorLoosener = 1.0                    # Multiplies all prior error by loosener
-Nmax = 8                               # Number of exp to fit for 2pts in chained, marginalised fit
-FitToGBF = True                     # If false fits to Nmax
+Nmax = 4                               # Number of exp to fit for 2pts in chained, marginalised fit
+FitToGBF = False                     # If false fits to Nmax
 ##############################################################
 #PDGGMass =
 #PDGNGMass =
@@ -835,7 +835,7 @@ def main(Autoprior,data):
                     #else:
                     #    save_p0(p0,NMarg,fname3,TwoKeys,ThreeKeys)      #Don't save gloabal elements if margianlised
                     if SaveFit == True:
-                        gv.dump(fit.p,'Fits/{6}5_3pts_Q{5:.2f}_Nexp{0}_NMarg{7}_Stmin{1}_Vtmin{2}_Ttmin{3}_svd{4:.5f}_chi{7:.3f}_pl{9}_svdfac{10}'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof,NMarg,PriorLoosener,SvdFactor))
+                        gv.dump(fit.p,'Fits/{6}5_3pts_Q{5:.2f}_Nexp{0}_NMarg{8}_Stmin{1}_Vtmin{2}_Ttmin{3}_svd{4:.5f}_chi{7:.3f}_pl{9}_svdfac{10}'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof,NMarg,PriorLoosener,SvdFactor))
                         f = open('Fits/{6}5_3pts_Q{5:.2f}_Nexp{0}_NMarg{8}_Stmin{1}_Vtmin{2}_Ttmin{3}_svd{4:.5f}_chi{7:.3f}_pl{9}_svdfac{10}.txt'.format(Nexp,Fit['Stmin'],Fit['Vtmin'],Fit['Ttmin'],svdcut,fit.Q,Fit['conf'],fit.chi2/fit.dof,NMarg,PriorLoosener,SvdFactor), 'w')
                         f.write(fit.format(pstyle=None if Nexp<3 else'v'))
                         f.close()
