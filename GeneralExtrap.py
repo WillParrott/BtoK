@@ -14,7 +14,7 @@ from collections import defaultdict
 ################################## F PARAMETERS ##########################
 F = collections.OrderedDict()
 F['conf']='F'
-F['filename'] = 'Fits/F5_3pts_Q1.00_Nexp1_Stmin2_Vtmin1_svd0.00157_chi0.360'
+F['filename'] = 'Fits/F5_3pts_Q1.00_Nexp2_NMarg6_Stmin2_Vtmin2_Ttmin2_svd0.00500_chi0.213_pl1.0_svdfac1.0'
 F['Masses'] = ['0.449','0.566','0.683','0.8']
 F['Twists'] = ['0','0.4281','1.282','2.141','2.570','2.993']
 F['m_l'] = '0.0074'
@@ -52,6 +52,7 @@ Pri = '0.00(1.00)'
 DoFit = True
 N = 3
 SHOWPLOTS = True
+EXTRAP = False
 ############################################################################
 ############################################################################
    
@@ -65,14 +66,14 @@ def make_params():
         Fit['a'] = w0/((hbar*c*1e-2)*gv.gvar(Fit['w0/a']))
         Fit['masses'] = []
         Fit['twists'] = []
-        Fit['momenta'] = []
+        Fit['momenta'] = {} 
         Fit['Delta'] = 0
         for i in Masses[Fit['conf']]:
             Fit['masses'].append(Fit['Masses'][i])
         for j in Twists[Fit['conf']]:
             Fit['twists'].append(Fit['Twists'][j])
         for twist in Fit['twists']:
-            Fit['momenta'].append(np.sqrt(3)*np.pi*float(twist)/Fit['L'])
+            Fit['momenta'][twist]=np.sqrt(3)*np.pi*float(twist)/Fit['L']
         for Twist in Fit['Twists']:
             Fit['KGtw{0}'.format(Twist)] = Fit['KG-Tag'].format(Twist)
             Fit['KNGtw{0}'.format(Twist)] = Fit['KNG-Tag'].format(Twist)
@@ -86,10 +87,10 @@ def make_params():
 def get_results(Fit):
     Vnn = collections.OrderedDict()
     p = gv.load(Fit['filename'])    
-    for i in range(len(Fit['twists'])):
-        Fit['M_KG_tw{0}'.format(Fit['twists'][i])] =  gv.sqrt(p['dE:{0}'.format(Fit['KGtw{0}'.format(Fit['twists'][i])])][0]**2 - Fit['momenta'][i]**2)
+    for i, twist in enumerate(Fit['twists']):
+        Fit['M_KG_tw{0}'.format(Fit['twists'][i])] =  gv.sqrt(p['dE:{0}'.format(Fit['KGtw{0}'.format(Fit['twists'][i])])][0]**2 - Fit['momenta'][twist]**2)
         Fit['E_KG_tw{0}'.format(Fit['twists'][i])] = p['dE:{0}'.format(Fit['KGtw{0}'.format(Fit['twists'][i])])][0]
-        Fit['M_KNG_tw{0}'.format(Fit['twists'][i])] =  gv.sqrt(p['dE:{0}'.format(Fit['KNGtw{0}'.format(Fit['twists'][i])])][0]**2 - Fit['momenta'][i]**2)
+        Fit['M_KNG_tw{0}'.format(Fit['twists'][i])] =  gv.sqrt(p['dE:{0}'.format(Fit['KNGtw{0}'.format(Fit['twists'][i])])][0]**2 - Fit['momenta'][twist]**2)
         Fit['E_KNG_tw{0}'.format(Fit['twists'][i])] = p['dE:{0}'.format(Fit['KNGtw{0}'.format(Fit['twists'][i])])][0]
     for mass in Fit['masses']:
         Fit['M_BG_m{0}'.format(mass)] = p['dE:{0}'.format(Fit['BGm{0}'.format(mass)])][0]
@@ -99,13 +100,18 @@ def get_results(Fit):
         #print(gv.evalcorr([Fit['M_NG_m{0}'.format(mass)],Fit['M_G_m{0}'.format(mass)]]))    
         for twist in Fit['twists']:
             if 'SVnn_m{0}_tw{1}'.format(mass,twist) in p:
+                #print(mass,twist)
                 Fit['Sm{0}_tw{1}'.format(mass,twist)] = 2*2*gv.sqrt(Fit['E_KG_tw{0}'.format(twist)]*Fit['M_BG_m{0}'.format(mass)])*p['SVnn_m{0}_tw{1}'.format(mass,twist)][0][0]
+                #print('S',Fit['Sm{0}_tw{1}'.format(mass,twist)])
                 Fit['Vm{0}_tw{1}'.format(mass,twist)] = 2*2*gv.sqrt(Fit['E_KG_tw{0}'.format(twist)]*Fit['M_BG_m{0}'.format(mass)])*p['VVnn_m{0}_tw{1}'.format(mass,twist)][0][0]
+                #print('V',Fit['Vm{0}_tw{1}'.format(mass,twist)])
                 Fit['Tm{0}_tw{1}'.format(mass,twist)] = 2*2*gv.sqrt(Fit['E_KG_tw{0}'.format(twist)]*Fit['M_BG_m{0}'.format(mass)])*p['TVnn_m{0}_tw{1}'.format(mass,twist)][0][0]  ### Is this correct???
+                #print('T',Fit['Tm{0}_tw{1}'.format(mass,twist)])
     return()
 
 
 def make_fs(Fit):
+    tensornorm = gv.gvar('1.09024(56)')
     plt.figure(9)
     make_params()    
     print('Calc for', Fit['filename'] )
@@ -127,8 +133,8 @@ def make_fs(Fit):
         Sca[mass] = collections.OrderedDict()
         Vec[mass] = collections.OrderedDict()
         Ten[mass] = collections.OrderedDict()
-        Z_v = (float(mass) - float(Fit['m_s']))*Fit['Sm{0}_tw0'.format(mass)]/((Fit['M_BG_m{0}'.format(mass)] - Fit['M_KG_tw0'])*Fit['Vm{0}_tw0'.format(mass)])
-        plt.errorbar((Fit['a']**2).mean,Z_v.mean,xerr=(Fit['a']**2).sdev,yerr=Z_v.sdev,label=mass)
+        Z_v = (float(mass) - float(Fit['m_s']))*Fit['Sm{0}_tw0'.format(mass)]/((Fit['M_BG_m{0}'.format(mass)] - Fit['M_KG_tw0'])*Fit['Vm{0}_tw0'.format(mass)]) #m_s or m_l?
+        plt.errorbar((Fit['a']**2).mean,Z_v.mean,xerr=(Fit['a']**2).sdev,yerr=Z_v.sdev,label=mass, capsize=20, markeredgewidth=1.5, fmt='o', mfc='none',ms=12)
         for twist in Fit['twists']:
             if 'Sm{0}_tw{1}'.format(mass,twist) in Fit:
                 delta = (float(mass) - float(Fit['m_s']))*(Fit['M_BG_m{0}'.format(mass)]-Fit['E_KG_tw{0}'.format(twist)])
@@ -137,10 +143,8 @@ def make_fs(Fit):
                 z = (gv.sqrt(t-qsq)-gv.sqrt(t))/(gv.sqrt(t-qsq)+gv.sqrt(t)) 
                 if FitNegQsq == False:
                     if qsq.mean >= 0:
-                        F0 = (float(mass) - float(Fit['m_s']))*(1/(Fit['M_BG_m{0}'.format(mass)]**2 - Fit['M_KG_tw{0}'.format(twist)]**2))*Fit['Sm{0}_tw{1}'.format(mass,twist)]
-                        FT = Fit['Sm{0}_tw{1}'.format(mass,twist)]*(Fit['M_BG_m{0}'.format(mass)]+Fit['M_KG_m{0}'.format(mass)])/(2*Fit['M_BG_m{0}'.format(mass)]*float(twist))        # Have we used correct masses?
+                        F0 = (float(mass) - float(Fit['m_s']))*(1/(Fit['M_BG_m{0}'.format(mass)]**2 - Fit['M_KG_tw{0}'.format(twist)]**2))*Fit['Sm{0}_tw{1}'.format(mass,twist)]                        
                         F_0[mass][twist] = F0
-                        F_T[mass][twist] = FT
                         qSq[mass][twist] = qsq                    
                         Z[mass][twist] = z
                         Sca[mass][twist] = Fit['Sm{0}_tw{1}'.format(mass,twist)]
@@ -149,12 +153,12 @@ def make_fs(Fit):
                         A = Fit['M_BG_m{0}'.format(mass)] + Fit['E_KG_tw{0}'.format(twist)]
                         B = (Fit['M_BG_m{0}'.format(mass)]**2 - Fit['M_KG_tw{0}'.format(twist)]**2)*(Fit['M_BG_m{0}'.format(mass)] - Fit['E_KG_tw{0}'.format(twist)])/qsq           
                         if twist != '0':
-                            F_plus[mass][twist] = (1/(A-B))*(Z_v*Fit['Vm{0}_tw{1}'.format(mass,twist)] - B*F0)       
+                            F_plus[mass][twist] = (1/(A-B))*(Z_v*Fit['Vm{0}_tw{1}'.format(mass,twist)] - B*F0)
+                            FT = tensornorm*Fit['Tm{0}_tw{1}'.format(mass,twist)]*(Fit['M_BG_m{0}'.format(mass)]+Fit['M_KG_tw{0}'.format(twist)])/(2*Fit['M_BG_m{0}'.format(mass)]*float(twist))        # Have we used correct masses?
+                            F_T[mass][twist] = FT
                 elif FitNegQsq == True:
                     F0 = (float(mass) - float(Fit['m_s']))*(1/(Fit['M_BG_m{0}'.format(mass)]**2 - Fit['M_KG_tw{0}'.format(twist)]**2))*Fit['Sm{0}_tw{1}'.format(mass,twist)]
-                    FT = Fit['Sm{0}_tw{1}'.format(mass,twist)]*(Fit['M_BG_m{0}'.format(mass)]+Fit['M_KG_m{0}'.format(mass)])/(2*Fit['M_BG_m{0}'.format(mass)]*float(twist))
-                    F_0[mass][twist] = F0
-                    F_T[mass][twist] = FT  
+                    F_0[mass][twist] = F0  
                     qSq[mass][twist] = qsq                    
                     Z[mass][twist] = z
                     Sca[mass][twist] = Fit['Sm{0}_tw{1}'.format(mass,twist)]
@@ -164,12 +168,87 @@ def make_fs(Fit):
                     B = (Fit['M_BG_m{0}'.format(mass)]**2 - Fit['M_KG_tw{0}'.format(twist)]**2)*(Fit['M_BG_m{0}'.format(mass)] - Fit['E_KG_tw{0}'.format(twist)])/qsq           
                     if twist != '0':
                         F_plus[mass][twist] = (1/(A-B))*(Z_v*Fit['Vm{0}_tw{1}'.format(mass,twist)] - B*F0)
-   # plt.legend()
+                        print (mass,'  ' ,twist)
+                        print('')
+                        print('F_plus','{1}   {0:.2f}%'.format(100*F_plus[mass][twist].sdev/F_plus[mass][twist].mean,F_plus[mass][twist]))
+                        print('A','{1}   {0:.2f}%'.format(100*A.sdev/A.mean,A))
+                        print('B','{1}   {0:.2f}%'.format(100*B.sdev/B.mean,B))
+                        print('A-B','{1}   {0:.2f}%'.format(100*(A-B).sdev/(A-B).mean,A-B))
+                        print('ZV-BF0',Z_v*Fit['Vm{0}_tw{1}'.format(mass,twist)] - B*F0)
+                        print('Z_v','{1}   {0:.2f}%'.format(100*Z_v.sdev/Z_v.mean,Z_v))
+                        print('Vnn','{1}   {0:.2f}%'.format(100*Fit['Vm{0}_tw{1}'.format(mass,twist)].sdev/Fit['Vm{0}_tw{1}'.format(mass,twist)].mean,Fit['Vm{0}_tw{1}'.format(mass,twist)]))
+                        print('F0','{1}   {0:.2f}%'.format(F0.sdev/F0.mean,F0))
+                        print('')
+                        print('')
+                        FT = tensornorm*Fit['Tm{0}_tw{1}'.format(mass,twist)]*(Fit['M_BG_m{0}'.format(mass)]+Fit['M_KG_tw{0}'.format(twist)])/(2*Fit['M_BG_m{0}'.format(mass)]*Fit['momenta'][twist])        # Have we used correct masses?
+                        print('F_T','{1}   {0:.2f}%'.format(100*FT.sdev/FT.mean,FT))
+                        print('Vnn','{1}   {0:.2f}%'.format(100*Fit['Tm{0}_tw{1}'.format(mass,twist)].sdev/Fit['Tm{0}_tw{1}'.format(mass,twist)].mean,Fit['Tm{0}_tw{1}'.format(mass,twist)]))
+                        print('(MB+MK)/2MB','{1}   {0:.2f}%'.format(100*((Fit['M_BG_m{0}'.format(mass)]+Fit['M_KG_tw{0}'.format(twist)])/(2*Fit['M_BG_m{0}'.format(mass)])).sdev/((Fit['M_BG_m{0}'.format(mass)]+Fit['M_KG_tw{0}'.format(twist)])/(2*Fit['M_BG_m{0}'.format(mass)])).mean,((Fit['M_BG_m{0}'.format(mass)]+Fit['M_KG_tw{0}'.format(twist)])/(2*Fit['M_BG_m{0}'.format(mass)]))))
+                        print('')
+                        #print('Fit',Fit['Tm{0}_tw{1}'.format(mass,twist)])
+                        #print('MB',Fit['M_BG_m{0}'.format(mass)])
+                        #print('MK',Fit['M_KG_tw{0}'.format(twist)])
+                        #print('mom',Fit['momenta'][twist])
+                        F_T[mass][twist] = FT
+   # plt.legend()       
     plt.xlabel('$a^2$')
     plt.ylabel('$Z_v$')
-    return(F_0,F_plus,qSq,Z)
+    return(F_0,F_plus,F_T,qSq,Z)
 
+def justplots(Fit):
+    F_0,F_plus,F_T,qSq,Z = make_fs(Fit)
+    plt.figure(1)
+    for mass in Fit['masses']:
+        z = []
+        zerr = []
+        f = []
+        ferr = []
+        for i in qSq[mass]:
+            z.append(Z[mass][i].mean)
+            f.append(F_0[mass][i].mean)
+            zerr.append(Z[mass][i].sdev)
+            ferr.append(F_0[mass][i].sdev)        
+        plt.errorbar(z,f,xerr=[zerr,zerr],yerr=[ferr,ferr], capsize=2, fmt='o', mfc='none', label=('{1} $m_h$ = {0}'.format(mass,Fit['conf'])))
+    plt.legend()
+    plt.xlabel('$z$')
+    plt.ylabel('$f_0$')
 
+    plt.figure(2)
+    for mass in Fit['masses']:
+        z = []
+        zerr = []
+        f = []
+        ferr = []
+        for i in qSq[mass]:
+            if i != '0':
+                z.append(Z[mass][i].mean)
+                f.append(F_plus[mass][i].mean)
+                zerr.append(Z[mass][i].sdev)
+                ferr.append(F_plus[mass][i].sdev)        
+        plt.errorbar(z,f,xerr=[zerr,zerr],yerr=[ferr,ferr], capsize=2, fmt='o', mfc='none', label=('{1} $m_h$ = {0}'.format(mass,Fit['conf'])))
+    plt.legend()
+    plt.xlabel('$z$')
+    plt.ylabel('$f_+$')
+
+    plt.figure(3)
+    for mass in Fit['masses']:
+        z = []
+        zerr = []
+        f = []
+        ferr = []
+        for i in qSq[mass]:
+            if i != '0':
+                z.append(Z[mass][i].mean)
+                f.append(F_T[mass][i].mean)
+                zerr.append(Z[mass][i].sdev)
+                ferr.append(F_T[mass][i].sdev)        
+        plt.errorbar(z,f,xerr=[zerr,zerr],yerr=[ferr,ferr], capsize=2, fmt='o', mfc='none', label=('{1} $m_h$ = {0}'.format(mass,Fit['conf'])))
+    plt.legend()
+    plt.xlabel('$z$')
+    plt.ylabel('$f_T$')
+    
+    plt.show()
+    return()
 
 def main():
     Metasphys = gv.gvar('0.6885(22)')
@@ -968,7 +1047,11 @@ def findDelta():
 #AddRho = True
 #main()
 #AddRho = False
-main()
+if EXTRAP:
+    main()
+else:
+    for Fit in Fits:
+        justplots(Fit)
 
 if SHOWPLOTS:
     plt.show()
